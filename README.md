@@ -54,7 +54,7 @@ and
 
 ## Quick start
 
-Requirements: Node.js 20.19 or newer and pnpm 11.
+Requirements: Node.js 20.19 or newer and pnpm 10.34.0.
 
 ```bash
 git clone https://github.com/ryux1/mcp-trace.git

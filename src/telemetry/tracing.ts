@@ -2,6 +2,7 @@ import type { Tracer } from "@opentelemetry/api";
 import { OTLPTraceExporter } from "@opentelemetry/exporter-trace-otlp-http";
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { BatchSpanProcessor, NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
+import { VERSION } from "../version.js";
 
 export interface TelemetryRuntime {
   readonly tracer: Tracer;
@@ -30,14 +31,14 @@ export function createTelemetry(options: TelemetryOptions = {}): TelemetryRuntim
   const provider = new NodeTracerProvider({
     resource: resourceFromAttributes({
       "service.name": options.serviceName ?? "mcp-trace",
-      "service.version": "0.1.0"
+      "service.version": VERSION
     }),
     spanProcessors
   });
   provider.register();
 
   return {
-    tracer: provider.getTracer("mcp-trace", "0.1.0"),
+    tracer: provider.getTracer("mcp-trace", VERSION),
     shutdown: async () => provider.shutdown()
   };
 }

@@ -3,6 +3,18 @@
 All notable changes are documented here. This project follows
 [Semantic Versioning](https://semver.org/).
 
+## 0.1.1 - 2026-08-13
+
+### Fixed
+
+- Align Node.js 20 development guidance with the pnpm 10.34.0 toolchain used by the package and CI.
+- Report the package version consistently in the CLI and OpenTelemetry resource/tracer metadata.
+- Avoid a check/use race when inspecting recording permissions and contents in the test suite.
+
+### Changed
+
+- Keep Dependabot major updates within the project's Node.js and TypeScript peer-support ranges.
+
 ## 0.1.0 - 2026-08-13
 
 ### Added

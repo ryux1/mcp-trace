@@ -15,7 +15,7 @@ not a public issue.
 
 ## Development
 
-Requirements: Node.js 20.19 or newer and pnpm 11.
+Requirements: Node.js 20.19 or newer and pnpm 10.34.0.
 
 ```bash
 corepack enable
