@@ -12,6 +12,18 @@ updates:
       opentelemetry:
         patterns:
           - "@opentelemetry/*"
+    ignore:
+      # Major releases can raise their Node.js floor beyond the supported runtime range.
+      - dependency-name: "@types/node"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: commander
+        update-types:
+          - version-update:semver-major
+      # Keep TypeScript within typescript-eslint's declared peer range.
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
