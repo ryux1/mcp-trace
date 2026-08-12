@@ -1,0 +1,13 @@
+.git
+.github
+.local
+benchmark
+coverage
+dist
+docs
+examples
+node_modules
+test
+*.log
+*.ndjson
+*.tgz

@@ -1,0 +1,78 @@
+{
+  "name": "@ryux1/mcp-trace",
+  "version": "0.1.0",
+  "description": "A security-conscious observability gateway for MCP over Streamable HTTP.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Ryu <code@ryux1.dev>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ryux1/mcp-trace.git"
+  },
+  "bugs": {
+    "url": "https://github.com/ryux1/mcp-trace/issues"
+  },
+  "homepage": "https://github.com/ryux1/mcp-trace#readme",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "observability",
+    "opentelemetry",
+    "proxy",
+    "tracing"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "packageManager": "pnpm@11.3.0",
+  "bin": {
+    "mcp-trace": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "benchmark": "pnpm build && node benchmark/benchmark.mjs",
+    "build": "tsc -p tsconfig.build.json",
+    "check": "tsc --noEmit",
+    "dev": "tsx src/cli.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint . --max-warnings 0",
+    "start": "node dist/cli.js",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "verify": "pnpm format:check && pnpm lint && pnpm check && pnpm test:coverage && pnpm build"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.221.0",
+    "@opentelemetry/resources": "^2.10.0",
+    "@opentelemetry/sdk-trace-node": "^2.10.0",
+    "commander": "^14.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^24.10.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "eslint": "^10.8.1",
+    "globals": "^17.11.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.12",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.67.0",
+    "vitest": "^4.1.10"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  }
+}
