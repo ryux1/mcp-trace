@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, open, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -68,14 +68,20 @@ describe("NDJSON recordings", () => {
       recorder.write(exchange("3", "resources/read", 20, 200))
     ]);
     await recorder.close();
-    expect((await stat(path)).mode & 0o777).toBe(0o600);
 
     const entries: RecordedExchange[] = [];
     for await (const entry of readRecording(path)) {
       entries.push(entry);
     }
     expect(entries.map(({ id }) => id).sort()).toEqual(["1", "2", "3"]);
-    expect((await readFile(path, "utf8")).trim().split("\n")).toHaveLength(3);
+
+    const recording = await open(path, "r");
+    try {
+      expect((await recording.stat()).mode & 0o777).toBe(0o600);
+      expect((await recording.readFile("utf8")).trim().split("\n")).toHaveLength(3);
+    } finally {
+      await recording.close();
+    }
 
     const summary = await inspectRecording(path);
     expect(summary).toMatchObject({
