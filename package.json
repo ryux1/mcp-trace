@@ -24,7 +24,7 @@
   "engines": {
     "node": ">=20.19.0"
   },
-  "packageManager": "pnpm@11.3.0",
+  "packageManager": "pnpm@10.34.0",
   "bin": {
     "mcp-trace": "./dist/cli.js"
   },

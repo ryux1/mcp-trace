@@ -28,7 +28,7 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6.0.10
         with:
-          version: 11.3.0
+          version: 10.34.0
           run_install: false
 
       - name: Set up Node.js
@@ -54,3 +54,14 @@ jobs:
           path: coverage/
           if-no-files-found: error
           retention-days: 14
+
+  container:
+    name: Container build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Build container
+        run: docker build --tag mcp-trace:ci .
