@@ -64,11 +64,29 @@ async function waitFor(url, child) {
 }
 
 async function stop(child) {
-  if (child.exitCode !== null) {
+  if (child.exitCode !== null || child.signalCode !== null) {
     return;
   }
-  child.kill("SIGTERM");
-  await new Promise((resolveExit) => child.once("exit", resolveExit));
+  await new Promise((resolve) => {
+    let finished = false;
+    const finish = () => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      clearTimeout(forceKill);
+      resolve();
+    };
+    child.once("exit", finish);
+    const forceKill = setTimeout(() => {
+      if (!child.kill("SIGKILL")) {
+        finish();
+      }
+    }, 2_000);
+    if (!child.kill("SIGTERM")) {
+      finish();
+    }
+  });
 }
 
 const repository = resolve(import.meta.dirname, "..");

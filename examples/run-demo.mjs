@@ -40,16 +40,28 @@ async function waitFor(url, child, label) {
 }
 
 async function stop(child) {
-  if (child.exitCode !== null) {
+  if (child.exitCode !== null || child.signalCode !== null) {
     return;
   }
-  child.kill("SIGTERM");
   await new Promise((resolve) => {
-    child.once("exit", resolve);
-    setTimeout(() => {
-      child.kill("SIGKILL");
+    let finished = false;
+    const finish = () => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      clearTimeout(forceKill);
       resolve();
-    }, 2_000).unref();
+    };
+    child.once("exit", finish);
+    const forceKill = setTimeout(() => {
+      if (!child.kill("SIGKILL")) {
+        finish();
+      }
+    }, 2_000);
+    if (!child.kill("SIGTERM")) {
+      finish();
+    }
   });
 }
 
