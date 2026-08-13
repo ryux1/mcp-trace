@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="690" viewBox="0 0 1200 690" role="img" aria-labelledby="title description">
+  <title id="title">MCP Trace end-to-end demo output</title>
+  <desc id="description">A successful MCP tool call, sanitized recording summary, and bounded Prometheus metric produced by the real local demo.</desc>
+  <rect width="1200" height="690" rx="18" fill="#071426"/>
+  <rect x="1" y="1" width="1198" height="688" rx="17" fill="none" stroke="#1e3854" stroke-width="2"/>
+  <circle cx="34" cy="31" r="7" fill="#ff6b6b"/>
+  <circle cx="58" cy="31" r="7" fill="#ffd166"/>
+  <circle cx="82" cy="31" r="7" fill="#3ddc97"/>
+  <g fill="#dbeafe" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="20">
+    <text x="32" y="82" fill="#65d9ff" font-weight="700">$ pnpm demo</text>
+    <text x="32" y="126" fill="#ffffff" font-weight="700">MCP response</text>
+    <text x="32" y="158">{</text>
+    <text x="52" y="190">"id": 1,</text>
+    <text x="52" y="222">"jsonrpc": "2.0",</text>
+    <text x="52" y="254">"result": { "content": [{</text>
+    <text x="72" y="286" fill="#8be9c1">"text": "hello from mcp-trace",</text>
+    <text x="72" y="318">"type": "text"</text>
+    <text x="52" y="350">}] }</text>
+    <text x="32" y="382">}</text>
+    <text x="638" y="126" fill="#ffffff" font-weight="700">Sanitized recording summary</text>
+    <text x="638" y="158">{</text>
+    <text x="658" y="190">"bytesFromClient": 302,</text>
+    <text x="658" y="222">"bytesFromServer": 93,</text>
+    <text x="658" y="254">"exchanges": 1,</text>
+    <text x="658" y="286">"methods": {</text>
+    <text x="678" y="318" fill="#8be9c1">"tools/call": { "errors": 0, "requests": 1 }</text>
+    <text x="658" y="350">},</text>
+    <text x="658" y="382">"schemaVersion": 1</text>
+    <text x="638" y="414">}</text>
+    <text x="32" y="474" fill="#ffffff" font-weight="700">Prometheus evidence</text>
+    <text x="32" y="516" fill="#f8c75c">mcp_trace_requests_total{method="tools/call",status="200"} 1</text>
+    <text x="32" y="590" fill="#7f9db9">The demo also asserts that the source credential is absent from the recording.</text>
+    <text x="32" y="636" fill="#65d9ff">real request  •  real proxy  •  sanitized evidence  •  automatic cleanup</text>
+  </g>
+</svg>

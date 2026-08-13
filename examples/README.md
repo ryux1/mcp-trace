@@ -1,6 +1,41 @@
-# Local demo
+# Demonstrations
 
-Start the dependency-free mock MCP upstream:
+## Automated local demo
+
+The fastest source-checkout demonstration is:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm demo
+```
+
+It builds MCP Trace, allocates ephemeral localhost ports, starts the dependency-free mock upstream,
+records a real `tools/call`, verifies that the fixture credential is absent from the recording,
+prints a recording summary and Prometheus evidence, and removes its processes and temporary files.
+
+The expected shape is checked into
+[`../docs/assets/demo-output.svg`](../docs/assets/demo-output.svg). Values that naturally vary, such
+as latency and timestamps, are omitted from that visual.
+
+## Jaeger Compose demo
+
+With Docker Compose installed:
+
+```bash
+docker compose -f docker-compose.demo.yml up --build --detach
+```
+
+The one-shot `demo-client` sends a modern request after MCP Trace is healthy. Open
+`http://127.0.0.1:16686`; in Jaeger, select the `mcp-trace` service and find the `mcp.proxy` span.
+Stop and clean up the isolated stack with:
+
+```bash
+docker compose -f docker-compose.demo.yml down --volumes
+```
+
+## Manual flow
+
+Start the mock MCP upstream:
 
 ```bash
 node examples/mock-mcp-server.mjs
@@ -16,17 +51,10 @@ node dist/cli.js proxy \
   --record-bodies
 ```
 
-Send a modern MCP request through the gateway:
+Send a request from a third terminal:
 
 ```bash
-curl --no-buffer http://127.0.0.1:7331/mcp \
-  --request POST \
-  --header 'Accept: application/json, text/event-stream' \
-  --header 'Content-Type: application/json' \
-  --header 'MCP-Protocol-Version: 2026-07-28' \
-  --header 'Mcp-Method: tools/call' \
-  --header 'Mcp-Name: echo' \
-  --data @examples/request.json
+node examples/send-demo-request.mjs
 ```
 
 Change both `echo` values in `examples/request.json` to `stream` to receive a two-event SSE
@@ -36,5 +64,5 @@ response. Inspect the recording with:
 node dist/cli.js inspect .local/demo.ndjson
 ```
 
-The mock server exists only for local testing. It does not implement authorization or the complete
-MCP lifecycle.
+The mock server exists only for demonstrations and tests. It does not implement authorization or the
+complete MCP lifecycle.

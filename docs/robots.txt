@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ryux1.github.io/mcp-trace/sitemap.xml

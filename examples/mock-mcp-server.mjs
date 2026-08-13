@@ -1,13 +1,22 @@
 import { createServer } from "node:http";
 
-const host = "127.0.0.1";
-const port = 3001;
+const host = process.env.MCP_DEMO_HOST ?? "127.0.0.1";
+const port = Number.parseInt(process.env.MCP_DEMO_PORT ?? "3001", 10);
+
+if (!Number.isInteger(port) || port < 0 || port > 65_535) {
+  throw new Error("MCP_DEMO_PORT must be an integer between 0 and 65535");
+}
 
 function jsonRpcError(id, code, message) {
   return { error: { code, message }, id, jsonrpc: "2.0" };
 }
 
 const server = createServer(async (request, response) => {
+  if (request.url === "/healthz" && request.method === "GET") {
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"status":"ok"}');
+    return;
+  }
   if (request.url !== "/mcp" || request.method !== "POST") {
     response.writeHead(404, { "content-type": "application/json" });
     response.end(JSON.stringify(jsonRpcError(null, -32601, "Method not found")));
@@ -70,7 +79,11 @@ const server = createServer(async (request, response) => {
 });
 
 server.listen(port, host, () => {
-  process.stdout.write(`Mock MCP server listening on http://${host}:${port}/mcp\n`);
+  const address = server.address();
+  if (address === null || typeof address === "string") {
+    throw new Error("Mock MCP server did not expose a TCP port");
+  }
+  process.stdout.write(`Mock MCP server listening on http://${host}:${address.port}/mcp\n`);
 });
 
 for (const signal of ["SIGINT", "SIGTERM"]) {

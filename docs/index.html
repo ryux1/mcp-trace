@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>MCP Trace — Security-first MCP observability gateway</title>
+    <meta
+      name="description"
+      content="MCP Trace is an open-source Model Context Protocol observability gateway for Streamable HTTP. Trace, measure, record, inspect, and safely replay MCP JSON-RPC and SSE traffic."
+    />
+    <link rel="canonical" href="https://ryux1.github.io/mcp-trace/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="MCP Trace" />
+    <meta
+      property="og:description"
+      content="Security-first observability, recording, and replay for MCP Streamable HTTP."
+    />
+    <meta
+      property="og:image"
+      content="https://ryux1.github.io/mcp-trace/assets/social-preview.png"
+    />
+    <meta property="og:url" content="https://ryux1.github.io/mcp-trace/" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareSourceCode",
+        "name": "MCP Trace",
+        "description": "Security-first Model Context Protocol observability gateway for Streamable HTTP recording, inspection, tracing, and replay.",
+        "codeRepository": "https://github.com/ryux1/mcp-trace",
+        "license": "https://opensource.org/license/mit",
+        "programmingLanguage": "TypeScript",
+        "runtimePlatform": "Node.js 20.19 or newer"
+      }
+    </script>
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: #071426;
+        --surface: #0b1d33;
+        --border: #1d3b58;
+        --text: #f4f7fb;
+        --muted: #9db3c8;
+        --cyan: #65d9ff;
+        --teal: #50dfbd;
+        --amber: #f8c75c;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+      }
+      body {
+        margin: 0;
+        background: var(--background);
+        color: var(--text);
+        font:
+          16px/1.65 system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+      }
+      a {
+        color: var(--cyan);
+      }
+      nav,
+      main,
+      footer {
+        width: min(1120px, calc(100% - 40px));
+        margin-inline: auto;
+      }
+      nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        min-height: 72px;
+      }
+      nav strong {
+        letter-spacing: 0.02em;
+      }
+      nav div {
+        display: flex;
+        gap: 20px;
+      }
+      nav a {
+        color: var(--muted);
+        text-decoration: none;
+      }
+      nav a:hover {
+        color: var(--text);
+      }
+      .hero {
+        padding: 88px 0 72px;
+        max-width: 880px;
+      }
+      .eyebrow {
+        color: var(--teal);
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+      h1 {
+        font-size: clamp(3rem, 8vw, 6.6rem);
+        line-height: 0.96;
+        margin: 18px 0 24px;
+        letter-spacing: -0.055em;
+      }
+      h2 {
+        font-size: clamp(1.8rem, 4vw, 2.7rem);
+        line-height: 1.15;
+        margin: 0 0 20px;
+        letter-spacing: -0.025em;
+      }
+      h3 {
+        margin-top: 0;
+      }
+      .lead {
+        color: #cad8e5;
+        font-size: clamp(1.15rem, 2.4vw, 1.5rem);
+        max-width: 760px;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 32px;
+      }
+      .button {
+        display: inline-block;
+        padding: 11px 18px;
+        border: 1px solid var(--cyan);
+        border-radius: 8px;
+        color: var(--background);
+        background: var(--cyan);
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .button.secondary {
+        color: var(--cyan);
+        background: transparent;
+      }
+      .status {
+        color: var(--muted);
+        margin-top: 24px;
+      }
+      section {
+        padding: 64px 0;
+        border-top: 1px solid var(--border);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 18px;
+      }
+      .card {
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+      }
+      .card p {
+        color: var(--muted);
+        margin-bottom: 0;
+      }
+      .flow {
+        overflow-x: auto;
+        padding: 24px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        color: var(--teal);
+        background: #05101e;
+        font:
+          15px/1.7 ui-monospace,
+          monospace;
+        white-space: pre;
+      }
+      pre {
+        overflow-x: auto;
+        padding: 22px;
+        border-radius: 10px;
+        background: #030c17;
+        border: 1px solid var(--border);
+        color: #dce9f5;
+      }
+      code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+      .evidence {
+        width: 100%;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+      }
+      .docs {
+        columns: 2;
+        padding: 0;
+        list-style: none;
+      }
+      .docs li {
+        break-inside: avoid;
+        margin: 0 0 12px;
+      }
+      footer {
+        padding: 48px 0 64px;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+      }
+      @media (max-width: 760px) {
+        nav div {
+          display: none;
+        }
+        .hero {
+          padding-top: 54px;
+        }
+        .grid {
+          grid-template-columns: 1fr;
+        }
+        .docs {
+          columns: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav aria-label="Primary navigation">
+      <strong>MCP Trace</strong>
+      <div>
+        <a href="#why">Why</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#docs">Documentation</a>
+        <a href="https://github.com/ryux1/mcp-trace">GitHub</a>
+      </div>
+    </nav>
+    <main>
+      <header class="hero">
+        <div class="eyebrow">Open-source Model Context Protocol tooling</div>
+        <h1>See the MCP traffic you actually operate.</h1>
+        <p class="lead">
+          A transparent, security-first observability gateway for modern MCP Streamable HTTP. Trace,
+          measure, record, inspect, and safely replay JSON-RPC and SSE traffic without modifying the
+          client or server.
+        </p>
+        <div class="actions">
+          <a class="button" href="https://github.com/ryux1/mcp-trace#start-in-30-seconds"
+            >Start in 30 seconds</a
+          >
+          <a class="button secondary" href="https://github.com/ryux1/mcp-trace"
+            >Review the source</a
+          >
+        </div>
+        <p class="status">Early preview · MIT licensed · Node.js 20.19+ · local-first defaults</p>
+      </header>
+
+      <section id="why">
+        <h2>Observability without surrendering the boundary.</h2>
+        <div class="grid">
+          <article class="card">
+            <h3>Transparent</h3>
+            <p>
+              Streams JSON and SSE through a fixed upstream endpoint with backpressure and
+              cancellation propagation.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Security-first</h3>
+            <p>
+              Records metadata only by default, strips credentials, hashes legacy sessions, and
+              requires explicit replay execution.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Vendor-neutral</h3>
+            <p>
+              Exports bounded Prometheus metrics and OpenTelemetry spans while retaining sanitized
+              NDJSON evidence locally.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section>
+        <h2>A deliberately narrow gateway.</h2>
+        <pre class="flow">
+MCP client ── POST / GET / DELETE ──▶ MCP Trace ── transparent HTTP ──▶ MCP server
+                                             │
+                                             ├── Prometheus metrics
+                                             ├── OpenTelemetry spans
+                                             └── sanitized NDJSON recording</pre>
+        <p>
+          MCP Trace does not implement MCP methods, authenticate clients, discover servers, or
+          mutate JSON-RPC bodies. The upstream server remains the protocol authority.
+        </p>
+      </section>
+
+      <section>
+        <h2>One command to start.</h2>
+        <pre><code>npx -y @ryux1/mcp-trace@latest proxy \
+  --upstream http://127.0.0.1:3001/mcp</code></pre>
+        <p>
+          Point the client at <code>http://127.0.0.1:7331/mcp</code>. The gateway listens on
+          loopback by default.
+        </p>
+      </section>
+
+      <section id="evidence">
+        <h2>Evidence, not feature claims.</h2>
+        <img
+          class="evidence"
+          src="assets/demo-output.svg"
+          alt="Real MCP Trace demo output showing a successful tool call, sanitized recording summary, and Prometheus metric"
+        />
+        <p>
+          The repository includes a deterministic end-to-end demo, wire-level integration tests,
+          clean-consumer package installation, a compatibility matrix, and checked-in benchmark
+          samples. The current microbenchmark also publishes material proxy overhead instead of
+          hiding it.
+        </p>
+      </section>
+
+      <section id="docs">
+        <h2>Read the boundary before deploying it.</h2>
+        <ul class="docs">
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace#protocol-compatibility"
+              >Protocol compatibility</a
+            >
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/docs/compatibility.md"
+              >Compatibility evidence</a
+            >
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/docs/architecture.md"
+              >Architecture</a
+            >
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/docs/security.md"
+              >Security and threat model</a
+            >
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/docs/recording-schema.md"
+              >Recording schema</a
+            >
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/docs/troubleshooting.md"
+              >Troubleshooting</a
+            >
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/docs/integrations.md"
+              >Observability integrations</a
+            >
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/docs/benchmarks.md">Benchmarks</a>
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/docs/roadmap.md"
+              >Roadmap and non-goals</a
+            >
+          </li>
+          <li>
+            <a href="https://github.com/ryux1/mcp-trace/blob/main/CONTRIBUTING.md">Contributing</a>
+          </li>
+        </ul>
+      </section>
+    </main>
+    <footer>
+      MCP Trace is maintained by <a href="https://github.com/ryux1">ryux1</a> and released under the
+      <a href="https://github.com/ryux1/mcp-trace/blob/main/LICENSE">MIT License</a>.
+    </footer>
+  </body>
+</html>
