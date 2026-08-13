@@ -50,7 +50,7 @@ npm whoami
 pnpm install --frozen-lockfile
 pnpm verify
 pnpm smoke:package
-npm publish --access public
+NPM_CONFIG_PROVENANCE=false npm publish --access public
 ```
 
 Then configure the trusted publisher with npm 11 or newer:
