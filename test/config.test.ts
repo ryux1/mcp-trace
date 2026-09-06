@@ -32,6 +32,14 @@ describe("configuration parsing", () => {
     expect(() => parseLogLevel("verbose")).toThrow("Invalid log level");
   });
 
+  it.each(["12junk", "1.5", "1e3", "+12", "-1", " 12", "12 ", "9007199254740992"])(
+    "rejects a partially parsed or unsafe integer: %s",
+    (value) => {
+      expect(() => parsePort(value)).toThrow("Invalid port");
+      expect(() => parsePositiveInteger(value, "Workers")).toThrow("positive integer");
+    }
+  );
+
   it("validates upstream URLs without accepting embedded credentials", () => {
     expect(validateUpstream("https://example.com/mcp#fragment").toString()).toBe(
       "https://example.com/mcp"
