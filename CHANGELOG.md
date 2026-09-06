@@ -9,6 +9,8 @@ All notable changes are documented here. This project follows
 
 - CI-verified interoperability with the official Python MCP SDK 2.1.1 on Python 3.13 using an
   isolated, locked test fixture.
+- Reproducible SSE, metadata-recording, body-recording, and OTLP benchmark scenarios with
+  machine-readable evidence and backward-compatible default-path results.
 
 ## 0.2.0 - 2026-08-14
 
