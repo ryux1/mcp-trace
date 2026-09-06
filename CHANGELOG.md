@@ -5,6 +5,11 @@ All notable changes are documented here. This project follows
 
 ## Unreleased
 
+### Added
+
+- CI-verified interoperability with the official Python MCP SDK 2.1.1 on Python 3.13 using an
+  isolated, locked test fixture.
+
 ## 0.2.0 - 2026-08-14
 
 ### Added

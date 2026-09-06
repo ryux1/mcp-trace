@@ -70,8 +70,8 @@ MCP client  ──POST / GET / DELETE──▶  MCP Trace  ──transparent HTT
 | stdio                             | Not supported | Requires a separate process and trust-boundary design                     |
 
 The [compatibility matrix](docs/compatibility.md) distinguishes verified behavior from planned work.
-An integration test uses the official TypeScript SDK 1.30.0 as both client and server and exercises
-initialization, `tools/list`, and `tools/call` through the gateway. See the official
+Integration tests exercise initialization, `tools/list`, and `tools/call` using the official
+TypeScript SDK 1.30.0 and Python SDK 2.1.1 as both clients and servers. The gateway targets the
 [2026 Streamable HTTP specification](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http)
 and
 [2025 transport specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports).
