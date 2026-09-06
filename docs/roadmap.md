@@ -6,7 +6,6 @@ and an auditable trust boundary.
 
 ## Near term
 
-- Add named Python SDK interoperability tests and publish their exact versions.
 - Add benchmark scenarios for SSE, recording, and OTLP export.
 - Improve default-path overhead identified by the checked-in benchmark baseline.
 - Add native `linux/arm64` container runtime coverage beyond the release build gate.

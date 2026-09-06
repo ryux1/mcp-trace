@@ -1,6 +1,9 @@
 coverage/
 dist/
 node_modules/
+**/.venv/
+__pycache__/
+*.pyc
 *.log
 *.ndjson
 .env
