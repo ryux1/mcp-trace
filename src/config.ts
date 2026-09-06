@@ -9,7 +9,7 @@ const BYTE_UNITS: Readonly<Record<string, number>> = {
 };
 
 export function parsePort(value: string): number {
-  const port = Number.parseInt(value, 10);
+  const port = parseDecimalInteger(value);
   if (!Number.isInteger(port) || port < 0 || port > 65_535) {
     throw new Error(`Invalid port: ${value}`);
   }
@@ -17,11 +17,19 @@ export function parsePort(value: string): number {
 }
 
 export function parsePositiveInteger(value: string, label: string): number {
-  const parsed = Number.parseInt(value, 10);
+  const parsed = parseDecimalInteger(value);
   if (!Number.isInteger(parsed) || parsed <= 0) {
     throw new Error(`${label} must be a positive integer`);
   }
   return parsed;
+}
+
+function parseDecimalInteger(value: string): number {
+  if (!/^\d+$/.test(value)) {
+    return Number.NaN;
+  }
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : Number.NaN;
 }
 
 export function parseByteSize(value: string): number {
