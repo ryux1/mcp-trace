@@ -1,7 +1,7 @@
 {
   "name": "@ryux1/mcp-trace",
-  "version": "0.1.1",
-  "description": "A security-conscious observability gateway for MCP over Streamable HTTP.",
+  "version": "0.2.0",
+  "description": "Security-first Model Context Protocol observability gateway for Streamable HTTP recording, inspection, tracing, and replay.",
   "type": "module",
   "license": "MIT",
   "author": "Ryu <code@ryux1.dev>",
@@ -12,13 +12,21 @@
   "bugs": {
     "url": "https://github.com/ryux1/mcp-trace/issues"
   },
-  "homepage": "https://github.com/ryux1/mcp-trace#readme",
+  "homepage": "https://ryux1.github.io/mcp-trace/",
   "keywords": [
+    "developer-tools",
+    "json-rpc",
     "mcp",
+    "mcp-observability",
+    "mcp-proxy",
     "model-context-protocol",
     "observability",
     "opentelemetry",
+    "prometheus",
     "proxy",
+    "record-replay",
+    "security",
+    "streamable-http",
     "tracing"
   ],
   "engines": {
@@ -37,16 +45,25 @@
   "files": [
     "dist",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CODE_OF_CONDUCT.md",
+    "CONTRIBUTING.md",
+    "SECURITY.md",
+    "docs/*.md",
+    "docs/assets/demo-output.svg",
+    "docs/benchmark-results/*.json"
   ],
   "scripts": {
     "benchmark": "pnpm build && node benchmark/benchmark.mjs",
     "build": "tsc -p tsconfig.build.json",
     "check": "tsc --noEmit",
+    "demo": "pnpm build && node examples/run-demo.mjs",
     "dev": "tsx src/cli.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint . --max-warnings 0",
+    "release:notes": "node scripts/extract-release-notes.mjs",
+    "smoke:package": "node scripts/smoke-package.mjs",
     "start": "node dist/cli.js",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -61,6 +78,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@modelcontextprotocol/sdk": "1.30.0",
     "@types/node": "^24.10.0",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.1",
@@ -69,7 +87,8 @@
     "tsx": "^4.23.12",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.67.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.10",
+    "zod": "4.4.3"
   },
   "publishConfig": {
     "access": "public",

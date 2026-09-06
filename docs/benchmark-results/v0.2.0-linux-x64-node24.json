@@ -1,0 +1,147 @@
+{
+  "benchmarkVersion": 1,
+  "environment": {
+    "arch": "x64",
+    "node": "v24.18.1",
+    "platform": "linux"
+  },
+  "samples": [
+    {
+      "delta": {
+        "p50Ms": 10.094,
+        "p95Ms": 13.906,
+        "throughputPercent": -55.9
+      },
+      "direct": {
+        "durationMs": 541.334,
+        "p50Ms": 8.017,
+        "p95Ms": 11.59,
+        "p99Ms": 14.377,
+        "requestsPerSecond": 3694.6
+      },
+      "proxied": {
+        "durationMs": 1228.69,
+        "p50Ms": 18.111,
+        "p95Ms": 25.496,
+        "p99Ms": 54.163,
+        "requestsPerSecond": 1627.7
+      },
+      "run": 1
+    },
+    {
+      "delta": {
+        "p50Ms": 9.894,
+        "p95Ms": 14.898,
+        "throughputPercent": -61.3
+      },
+      "direct": {
+        "durationMs": 430.677,
+        "p50Ms": 6.507,
+        "p95Ms": 8.682,
+        "p99Ms": 12.251,
+        "requestsPerSecond": 4643.9
+      },
+      "proxied": {
+        "durationMs": 1112.477,
+        "p50Ms": 16.401,
+        "p95Ms": 23.58,
+        "p99Ms": 25.871,
+        "requestsPerSecond": 1797.8
+      },
+      "run": 2
+    },
+    {
+      "delta": {
+        "p50Ms": 10.725,
+        "p95Ms": 13.046,
+        "throughputPercent": -62.2
+      },
+      "direct": {
+        "durationMs": 427.459,
+        "p50Ms": 6.373,
+        "p95Ms": 10.237,
+        "p99Ms": 12.465,
+        "requestsPerSecond": 4678.8
+      },
+      "proxied": {
+        "durationMs": 1131.035,
+        "p50Ms": 17.098,
+        "p95Ms": 23.283,
+        "p99Ms": 25.85,
+        "requestsPerSecond": 1768.3
+      },
+      "run": 3
+    },
+    {
+      "delta": {
+        "p50Ms": 10.507,
+        "p95Ms": 15.457,
+        "throughputPercent": -62.2
+      },
+      "direct": {
+        "durationMs": 422.84,
+        "p50Ms": 6.449,
+        "p95Ms": 8.202,
+        "p99Ms": 14.239,
+        "requestsPerSecond": 4729.9
+      },
+      "proxied": {
+        "durationMs": 1118.473,
+        "p50Ms": 16.956,
+        "p95Ms": 23.659,
+        "p99Ms": 25.694,
+        "requestsPerSecond": 1788.2
+      },
+      "run": 4
+    },
+    {
+      "delta": {
+        "p50Ms": 9.96,
+        "p95Ms": 11.404,
+        "throughputPercent": -60.9
+      },
+      "direct": {
+        "durationMs": 418.836,
+        "p50Ms": 6.213,
+        "p95Ms": 10.787,
+        "p99Ms": 12.908,
+        "requestsPerSecond": 4775.1
+      },
+      "proxied": {
+        "durationMs": 1070.534,
+        "p50Ms": 16.173,
+        "p95Ms": 22.191,
+        "p99Ms": 24.454,
+        "requestsPerSecond": 1868.2
+      },
+      "run": 5
+    }
+  ],
+  "summary": {
+    "delta": {
+      "p50Ms": 10.094,
+      "p95Ms": 13.906,
+      "throughputPercent": -61.3
+    },
+    "direct": {
+      "durationMs": 427.459,
+      "p50Ms": 6.449,
+      "p95Ms": 10.237,
+      "p99Ms": 12.908,
+      "requestsPerSecond": 4678.8
+    },
+    "proxied": {
+      "durationMs": 1118.473,
+      "p50Ms": 16.956,
+      "p95Ms": 23.58,
+      "p99Ms": 25.85,
+      "requestsPerSecond": 1788.2
+    }
+  },
+  "workload": {
+    "concurrency": 32,
+    "requestBytes": 170,
+    "requestCount": 2000,
+    "runs": 5
+  }
+}

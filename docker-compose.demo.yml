@@ -1,0 +1,77 @@
+services:
+  jaeger:
+    image: jaegertracing/jaeger:2.20.0
+    ports:
+      - "127.0.0.1:16686:16686"
+
+  upstream:
+    image: node:24-alpine
+    command: ["node", "examples/mock-mcp-server.mjs"]
+    environment:
+      MCP_DEMO_HOST: 0.0.0.0
+      MCP_DEMO_PORT: 3001
+    volumes:
+      - ./examples:/workspace/examples:ro
+    working_dir: /workspace
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:3001/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 2s
+      timeout: 2s
+      retries: 20
+
+  gateway:
+    build: .
+    command:
+      - proxy
+      - --host
+      - 0.0.0.0
+      - --allow-host
+      - 127.0.0.1:7331
+      - --allow-host
+      - localhost:7331
+      - --allow-host
+      - gateway:7331
+      - --upstream
+      - http://upstream:3001/mcp
+      - --otlp-endpoint
+      - http://jaeger:4318
+      - --record
+      - /data/traffic.ndjson
+      - --record-bodies
+    depends_on:
+      jaeger:
+        condition: service_started
+      upstream:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - fetch('http://127.0.0.1:7331/__mcp_trace/healthz').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))
+      interval: 2s
+      timeout: 2s
+      retries: 20
+    ports:
+      - "127.0.0.1:7331:7331"
+    volumes:
+      - demo-data:/data
+
+  demo-client:
+    image: node:24-alpine
+    command: ["node", "examples/send-demo-request.mjs"]
+    depends_on:
+      gateway:
+        condition: service_healthy
+    environment:
+      MCP_TRACE_URL: http://gateway:7331/mcp
+    volumes:
+      - ./examples:/workspace/examples:ro
+    working_dir: /workspace
+
+volumes:
+  demo-data:

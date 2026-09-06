@@ -64,3 +64,7 @@ submissions are not accepted.
 - Keep metric labels bounded and recordings schema-versioned.
 
 By participating, you agree to follow the [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md).
+
+Maintainers should follow the checked-in [release procedure](docs/releasing.md); it includes the
+one-time npm trusted-publisher bootstrap and remote repository settings that cannot be encoded in
+Git.
