@@ -295,8 +295,15 @@ MCP client ── POST / GET / DELETE ──▶ MCP Trace ── transparent HTT
 
       <section>
         <h2>One command to start.</h2>
-        <pre><code>npx -y @ryux1/mcp-trace@latest proxy \
-  --upstream http://127.0.0.1:3001/mcp</code></pre>
+        <p>
+          The initial registry release is pending. Run the current verified source and deterministic
+          demo from a repository checkout:
+        </p>
+        <pre><code>git clone https://github.com/ryux1/mcp-trace.git
+cd mcp-trace
+corepack enable
+pnpm install --frozen-lockfile
+pnpm demo</code></pre>
         <p>
           Point the client at <code>http://127.0.0.1:7331/mcp</code>. The gateway listens on
           loopback by default.

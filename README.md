@@ -18,14 +18,8 @@ safely replay JSON-RPC and SSE traffic.
 
 Requirements: Node.js 20.19 or newer.
 
-```bash
-npx -y @ryux1/mcp-trace@latest proxy \
-  --upstream http://127.0.0.1:3001/mcp
-```
-
-Point the MCP client at `http://127.0.0.1:7331/mcp`. MCP Trace binds only to `127.0.0.1` by default.
-
-To see the complete flow without configuring an MCP client, clone the repository and run:
+The initial npm and container publication is still pending. To run the current verified source,
+clone the repository and use the deterministic demo:
 
 ```bash
 corepack enable
@@ -84,25 +78,28 @@ and
 
 ## Install and run
 
-### npm
+### From source
 
-Run without a global installation:
+The registry packages shown in the release workflow are not published yet. Until the first release,
+run the CLI from a verified source checkout:
 
 ```bash
-npx -y @ryux1/mcp-trace@latest proxy \
+git clone https://github.com/ryux1/mcp-trace.git
+cd mcp-trace
+corepack enable
+pnpm install --frozen-lockfile
+pnpm build
+pnpm start -- proxy \
   --upstream http://127.0.0.1:3001/mcp
 ```
 
-Or install the CLI:
-
-```bash
-npm install --global @ryux1/mcp-trace
-mcp-trace proxy --upstream http://127.0.0.1:3001/mcp
-```
+Point the MCP client at `http://127.0.0.1:7331/mcp`. MCP Trace binds only to `127.0.0.1` by default.
 
 ### Container
 
-Versioned releases publish `linux/amd64` and `linux/arm64` images with an SBOM and build provenance:
+Once the first versioned release is published, it will provide `linux/amd64` and `linux/arm64`
+images with an SBOM and build provenance. The following commands are release targets, not currently
+available artifacts:
 
 ```bash
 docker pull ghcr.io/ryux1/mcp-trace:latest
