@@ -32,6 +32,7 @@ reports all samples plus medians. Tune the workload without editing the script:
 
 ```bash
 BENCHMARK_REQUESTS=10000 \
+BENCHMARK_FEATURE_REQUESTS=500 \
 BENCHMARK_CONCURRENCY=64 \
 BENCHMARK_RUNS=7 \
 pnpm benchmark
@@ -43,20 +44,39 @@ Write machine-readable output directly to a file:
 BENCHMARK_OUTPUT=.local/benchmark.json pnpm benchmark
 ```
 
-## What it measures
+## Scenarios
 
-The benchmark compares a client calling a local in-process JSON upstream directly with the same
-client calling it through MCP Trace. It uses the same body, headers, concurrency, and response for
-both paths. Recording and OTLP export are disabled, so the proxied result measures the default
-gateway path: request validation, MCP metadata extraction, span creation, metrics, header handling,
-and an additional HTTP hop.
+Every run now emits five named scenarios under `scenarios` while retaining the original top-level
+`samples`, `summary`, and `workload` fields for consumers of the version 1 JSON benchmark. Those
+top-level fields continue to describe the default JSON scenario.
+
+| Scenario            | Reference | Candidate                | Additional evidence                      |
+| ------------------- | --------- | ------------------------ | ---------------------------------------- |
+| `json`              | Direct    | Proxied                  | —                                        |
+| `sse`               | Direct    | Proxied                  | Finite request-scoped SSE body           |
+| `recordingMetadata` | Proxy     | Proxy + metadata NDJSON  | Recording bytes and exchange count       |
+| `recordingBodies`   | Proxy     | Proxy + body NDJSON      | Recording bytes and exchange count       |
+| `otlp`              | Proxy     | Proxy + OTLP/HTTP export | Export batches, bytes, and shutdown time |
+
+The JSON and SSE comparisons use the same body, headers, concurrency, and response for the direct
+and proxied paths. The recording and OTLP comparisons use an otherwise identical uninstrumented
+proxy as their reference, isolating the optional feature cost from the base proxy cost. Warm-up
+requests are included in recording exchange counts and OTLP export evidence but excluded from timed
+samples.
+
+The OTLP request timings measure span creation and batching on the request path. Because the
+benchmark closes the telemetry provider after the timed requests, `export.shutdownMs` separately
+reports the time required to flush the batch to the local collector. The exporter result includes
+the decoded span count, and the run fails if it does not match the number of candidate requests.
+Optional recording and OTLP scenarios default to at most 200 requests per timed run to stay within
+the telemetry batch queue; tune that bound with `BENCHMARK_FEATURE_REQUESTS`. Temporary recording
+files and all local servers and telemetry providers are removed or closed before the process exits.
 
 ## What it does not measure
 
-Loopback networking, Node version, CPU scheduling, response size, SSE duration, recording, disk
-speed, OpenTelemetry export, TLS, upstream latency, and client behavior materially affect results.
-Run the benchmark on intended deployment hardware and representative traffic before using it for
+Loopback networking, Node version, CPU scheduling, response size, long-lived SSE connections, disk
+speed, collector latency, batch configuration, TLS, upstream latency, and client behavior materially
+affect results. The SSE fixture is a bounded request-scoped response, not a soak test. The OTLP
+collector accepts payloads in memory and is not representative of a remote telemetry backend. Run
+the benchmark on intended deployment hardware and representative traffic before using it for
 capacity decisions.
-
-Future benchmark revisions should add long-lived SSE, metadata recording, body recording, and OTLP
-export scenarios while retaining this baseline for regression comparison.
