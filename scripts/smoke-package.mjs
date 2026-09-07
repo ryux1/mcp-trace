@@ -95,13 +95,13 @@ let upstream;
 let gateway;
 
 try {
-  execute("pnpm", ["pack", "--pack-destination", directory], {
+  execute("npm", ["pack", "--pack-destination", directory], {
     cwd: repository,
     stdio: "inherit"
   });
   const archive = (await readdir(directory)).find((name) => name.endsWith(".tgz"));
   if (archive === undefined) {
-    throw new Error("pnpm pack did not produce a tarball");
+    throw new Error("npm pack did not produce a tarball");
   }
   await writeFile(join(directory, "package.json"), '{"private":true,"type":"module"}\n');
   execute(

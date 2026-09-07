@@ -12,6 +12,11 @@ All notable changes are documented here. This project follows
 - Reproducible SSE, metadata-recording, body-recording, and OTLP benchmark scenarios with
   machine-readable evidence and backward-compatible default-path results.
 
+### Fixed
+
+- Preserve the `mcp-trace` executable in npm 12 package manifests and smoke-test the exact
+  npm-packed artifact used by the release workflow.
+
 ## 0.2.0 - 2026-08-14
 
 ### Added
