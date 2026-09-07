@@ -295,9 +295,13 @@ MCP client ── POST / GET / DELETE ──▶ MCP Trace ── transparent HTT
 
       <section>
         <h2>One command to start.</h2>
+        <p>The public <code>v0.1.1</code> container is available for <code>linux/amd64</code>:</p>
+        <pre><code>docker run --rm --network host \
+  ghcr.io/ryux1/mcp-trace:v0.1.1 proxy \
+  --upstream http://127.0.0.1:3001/mcp</code></pre>
         <p>
-          The initial registry release is pending. Run the current verified source and deterministic
-          demo from a repository checkout:
+          The npm package is not published yet. Run the newer <code>0.2.0</code> source and its
+          deterministic demo from a repository checkout:
         </p>
         <pre><code>git clone https://github.com/ryux1/mcp-trace.git
 cd mcp-trace
