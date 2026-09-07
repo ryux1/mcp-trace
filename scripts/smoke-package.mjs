@@ -160,7 +160,7 @@ try {
   }
   await stop(gateway);
   gateway = undefined;
-  const reportResult = execute(
+  const reportResult = execFileSync(
     process.execPath,
     [installedCli, "report", recording, "--output", report],
     { encoding: "utf8" }
