@@ -15,6 +15,7 @@ import {
 } from "./config.js";
 import { McpTraceGateway } from "./proxy/gateway.js";
 import { inspectRecording } from "./recording/inspect.js";
+import { generateRecordingReport } from "./recording/report.js";
 import { NdjsonRecorder } from "./recording/recorder.js";
 import { Redactor } from "./recording/redaction.js";
 import { replayRecording } from "./replay/replay.js";
@@ -50,6 +51,11 @@ interface ReplayCliOptions {
   rate?: number;
   timeout: number;
   upstream: string;
+}
+
+interface ReportCliOptions {
+  force: boolean;
+  output: string;
 }
 
 async function waitForShutdown(): Promise<NodeJS.Signals> {
@@ -220,13 +226,38 @@ function replayCommand(): Command {
     });
 }
 
+function reportCommand(): Command {
+  return new Command("report")
+    .description("Write an offline HTML summary of an MCP Trace recording")
+    .argument("<recording>", "recording path")
+    .requiredOption("-o, --output <path>", "HTML report path")
+    .option("--force", "overwrite an existing output file", false)
+    .action(async (recording: string, options: ReportCliOptions) => {
+      const data = await generateRecordingReport(recording, options.output, {
+        force: options.force
+      });
+      process.stdout.write(
+        `${JSON.stringify(
+          {
+            exchanges: data.summary.exchanges,
+            malformedLines: data.invalidJsonLines + data.unsupportedLines,
+            output: options.output
+          },
+          null,
+          2
+        )}\n`
+      );
+    });
+}
+
 export function createProgram(): Command {
   return new Command()
     .name("mcp-trace")
-    .description("Observe, record, inspect, and replay MCP Streamable HTTP traffic")
+    .description("Observe, record, inspect, report, and replay MCP Streamable HTTP traffic")
     .version(VERSION)
     .addCommand(proxyCommand())
     .addCommand(inspectCommand())
+    .addCommand(reportCommand())
     .addCommand(replayCommand());
 }
 

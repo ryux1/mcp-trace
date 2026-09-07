@@ -7,6 +7,14 @@ export {
   summarizeExchanges,
   type RecordingSummary
 } from "./recording/inspect.js";
+export {
+  escapeHtml,
+  generateRecordingReport,
+  renderRecordingReport,
+  scanRecordingForReport,
+  type RecordingReportData,
+  type RecordingReportOptions
+} from "./recording/report.js";
 export { NdjsonRecorder } from "./recording/recorder.js";
 export { REDACTED, Redactor } from "./recording/redaction.js";
 export { replayRecording, type ReplayOptions, type ReplaySummary } from "./replay/replay.js";

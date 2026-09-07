@@ -51,6 +51,22 @@ Supply upstream and OTLP credentials indirectly with `--upstream-header-env` and
 Binary payloads cannot be structurally redacted and are explicitly marked `redacted: false`. Review
 the [recording schema](recording-schema.md).
 
+## Offline reports
+
+`mcp-trace report` reads a recording locally and writes one static HTML document. It does not start
+a listener and the document contains no JavaScript or remote resources. A restrictive Content
+Security Policy blocks every resource class except the document's inline style.
+
+Reports contain aggregate method names, request and failure counts, byte counts, latency
+percentiles, capture/redaction evidence, and malformed-line accounting. They deliberately omit the
+recording path, headers, body values, trace IDs, upstream addresses, and error messages. Every
+recording-derived text value that is rendered is HTML-escaped.
+
+New reports use owner-only permissions (`0600`). Existing output is protected unless `--force` is
+supplied, and an output that resolves to the recording itself is rejected, including symbolic and
+hard links. Reports still reveal method names and traffic characteristics, so treat them as
+sensitive diagnostic artifacts.
+
 ## Redaction limitations
 
 Redaction is best effort. It cannot reliably identify every proprietary token format, secrets

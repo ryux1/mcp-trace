@@ -162,6 +162,17 @@ The output summarizes request counts, failures, bytes, and p50/p95/p99 latency b
 the [recording schema](docs/recording-schema.md) and [security model](docs/security.md) before
 capturing production traffic.
 
+Create a self-contained report for offline review:
+
+```bash
+mcp-trace report ./traffic.ndjson --output ./report.html
+```
+
+The report contains aggregate counts, latency percentiles, capture/redaction evidence, and malformed
+line accounting. It includes no scripts, remote resources, recording path, headers, body values, or
+error messages. The output is owner-readable (`0600`) and will not replace an existing file unless
+`--force` is explicit. It also refuses any output path that resolves to the input recording.
+
 ## Replay safely
 
 Replay is a dry run by default. It reports how many requests are replayable and skips truncated,
