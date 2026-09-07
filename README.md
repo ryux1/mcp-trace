@@ -116,8 +116,8 @@ docker run --rm --network host \
 ```
 
 The image is also tagged `latest`. The next release workflow targets both `linux/amd64` and
-`linux/arm64` with an SBOM and build provenance; native arm64 runtime coverage remains on the
-[roadmap](docs/roadmap.md).
+`linux/arm64` with an SBOM and build provenance. CI builds and starts the container on native amd64
+and arm64 runners before validating its health endpoint.
 
 For a complete local Jaeger demonstration:
 
