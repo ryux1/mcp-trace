@@ -7,9 +7,14 @@ and an auditable trust boundary.
 ## Near term
 
 - Improve default-path overhead identified by the checked-in benchmark baseline.
-- Add native `linux/arm64` container runtime coverage beyond the release build gate.
 
 ## Delivered
+
+### Native multi-architecture container verification
+
+Container CI builds and starts MCP Trace on GitHub-hosted native `linux/amd64` and `linux/arm64`
+runners. Each job verifies the image architecture and validates the running health endpoint; this is
+separate from the QEMU/Buildx multi-architecture release build.
 
 ### Read-only local report
 

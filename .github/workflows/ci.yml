@@ -135,8 +135,16 @@ jobs:
         run: pnpm exec vitest run test/python-sdk.integration.test.ts
 
   container:
-    name: Container build
-    runs-on: ubuntu-latest
+    name: Container (${{ matrix.architecture }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - architecture: amd64
+            runner: ubuntu-latest
+          - architecture: arm64
+            runner: ubuntu-24.04-arm
 
     steps:
       - name: Check out source
@@ -144,3 +152,28 @@ jobs:
 
       - name: Build container
         run: docker build --tag mcp-trace:ci .
+
+      - name: Verify image architecture
+        run:
+          test "$(docker image inspect mcp-trace:ci --format '{{.Architecture}}')" = "${{
+          matrix.architecture }}"
+
+      - name: Smoke test container
+        run: |
+          docker run --detach --name mcp-trace-ci \
+            --publish 127.0.0.1:7331:7331 \
+            mcp-trace:ci proxy \
+            --host 0.0.0.0 \
+            --allow-host 127.0.0.1 \
+            --upstream http://127.0.0.1:3001/mcp
+          response="$(curl --fail --silent --show-error \
+            --retry 10 --retry-delay 1 --retry-connrefused --retry-all-errors \
+            http://127.0.0.1:7331/__mcp_trace/healthz)"
+          test "$response" = \
+            '{"status":"ok","upstream":"http://127.0.0.1:3001/mcp"}'
+
+      - name: Show container logs and clean up
+        if: always()
+        run: |
+          docker logs mcp-trace-ci || true
+          docker rm --force mcp-trace-ci >/dev/null 2>&1 || true

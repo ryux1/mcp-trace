@@ -6,14 +6,14 @@ Node.js line.
 
 ## Runtime matrix
 
-| Surface                         | Status        | Evidence                                                        |
-| ------------------------------- | ------------- | --------------------------------------------------------------- |
-| Node.js 20.19                   | Verified      | CI verification, package build, unit and HTTP integration tests |
-| Node.js 22                      | Verified      | CI verification, package build, unit and HTTP integration tests |
-| Node.js 24                      | Verified      | CI plus clean-consumer package and end-to-end demo smoke tests  |
-| `linux/amd64` container         | Verified      | CI image build and release manifest                             |
-| `linux/arm64` container         | Release-gated | QEMU/Buildx release build; no native hardware test yet          |
-| macOS and Windows npm execution | CI-gated      | Clean-consumer package and end-to-end demo jobs on hosted CI    |
+| Surface                         | Status   | Evidence                                                        |
+| ------------------------------- | -------- | --------------------------------------------------------------- |
+| Node.js 20.19                   | Verified | CI verification, package build, unit and HTTP integration tests |
+| Node.js 22                      | Verified | CI verification, package build, unit and HTTP integration tests |
+| Node.js 24                      | Verified | CI plus clean-consumer package and end-to-end demo smoke tests  |
+| `linux/amd64` container         | Verified | Native CI image build, runtime smoke test, and release manifest |
+| `linux/arm64` container         | Verified | Native CI image build and runtime smoke test; release manifest  |
+| macOS and Windows npm execution | CI-gated | Clean-consumer package and end-to-end demo jobs on hosted CI    |
 
 ## Protocol and transport matrix
 
