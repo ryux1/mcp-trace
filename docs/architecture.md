@@ -54,15 +54,15 @@ transport-level concern.
 
 ## Modules
 
-| Module                 | Responsibility                                                   |
-| ---------------------- | ---------------------------------------------------------------- |
-| `proxy/gateway.ts`     | HTTP lifecycle, backpressure, cancellation, forwarding, shutdown |
-| `proxy/protocol.ts`    | JSON-RPC/MCP metadata extraction and mismatch detection          |
-| `proxy/security.ts`    | Host and Origin validation                                       |
-| `recording/*`          | bounded capture, header selection, redaction, NDJSON I/O         |
-| `telemetry/metrics.ts` | low-cardinality Prometheus counters and histograms               |
-| `telemetry/tracing.ts` | Node OpenTelemetry provider and OTLP/HTTP export                 |
-| `replay/replay.ts`     | dry-run planning, rate limiting, bounded concurrency, execution  |
+| Module                 | Responsibility                                                    |
+| ---------------------- | ----------------------------------------------------------------- |
+| `proxy/gateway.ts`     | HTTP lifecycle, backpressure, cancellation, forwarding, shutdown  |
+| `proxy/protocol.ts`    | JSON-RPC/MCP metadata extraction and mismatch detection           |
+| `proxy/security.ts`    | Host and Origin validation                                        |
+| `recording/*`          | capture, redaction, NDJSON I/O, strict inspection, offline report |
+| `telemetry/metrics.ts` | low-cardinality Prometheus counters and histograms                |
+| `telemetry/tracing.ts` | Node OpenTelemetry provider and OTLP/HTTP export                  |
+| `replay/replay.ts`     | dry-run planning, rate limiting, bounded concurrency, execution   |
 
 ## Failure semantics
 

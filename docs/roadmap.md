@@ -9,6 +9,14 @@ and an auditable trust boundary.
 - Improve default-path overhead identified by the checked-in benchmark baseline.
 - Add native `linux/arm64` container runtime coverage beyond the release build gate.
 
+## Delivered
+
+### Read-only local report
+
+`mcp-trace report` produces a deterministic, self-contained HTML summary without starting a
+listener. It escapes recording-derived values, exposes capture/redaction and malformed-line state,
+omits captured bodies, and protects existing output unless overwrite is explicit.
+
 ## Under evaluation
 
 ### stdio proxying
@@ -22,12 +30,6 @@ questions. It will be accepted only with:
 - byte-transparent JSON-RPC framing and cancellation behavior;
 - cross-platform lifecycle tests;
 - an interface that does not weaken the fixed-upstream HTTP mode.
-
-### Read-only local report
-
-A local HTML report could make recordings easier to understand without adding a persistent service.
-It must operate offline, escape all captured values, make redaction status visible, and avoid
-exposing recordings over a network listener by default.
 
 ## Explicit non-goals
 

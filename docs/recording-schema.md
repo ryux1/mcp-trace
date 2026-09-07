@@ -83,3 +83,7 @@ server enforce the protocol.
 
 Readers must reject unknown `schemaVersion` values rather than guessing. Future additive fields can
 be ignored. A future breaking representation will increment `schemaVersion`.
+
+The offline report is a diagnostic exception: it never interprets unknown versions, but counts and
+skips those lines so valid v1 exchanges in the same file can still be summarized. `inspect` and
+replay remain strict and stop at the first malformed or unsupported entry.

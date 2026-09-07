@@ -19,6 +19,65 @@ export interface RecordingSummary {
   readonly schemaVersion: 1;
 }
 
+function compareStrings(left: string, right: string): number {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+export class RecordingSummaryBuilder {
+  readonly #durations = new Map<string, number[]>();
+  readonly #errors = new Map<string, number>();
+  #bytesFromClient = 0;
+  #bytesFromServer = 0;
+  #exchanges = 0;
+  #firstStartedAt?: string;
+  #lastCompletedAt?: string;
+
+  add(exchange: RecordedExchange): void {
+    const method = exchange.request.metadata.method;
+    const methodDurations = this.#durations.get(method) ?? [];
+    methodDurations.push(exchange.durationMs);
+    this.#durations.set(method, methodDurations);
+    if (exchange.error !== undefined || exchange.response.status >= 400) {
+      this.#errors.set(method, (this.#errors.get(method) ?? 0) + 1);
+    }
+    this.#bytesFromClient += exchange.request.bytes;
+    this.#bytesFromServer += exchange.response.bytes;
+    this.#exchanges += 1;
+    this.#firstStartedAt ??= exchange.startedAt;
+    this.#lastCompletedAt = exchange.completedAt;
+  }
+
+  build(): RecordingSummary {
+    const methods = Object.fromEntries(
+      [...this.#durations.entries()]
+        .sort(([left], [right]) => compareStrings(left, right))
+        .map(([method, values]) => {
+          const sorted = [...values].sort((left, right) => left - right);
+          return [
+            method,
+            {
+              errors: this.#errors.get(method) ?? 0,
+              p50Ms: percentile(sorted, 0.5),
+              p95Ms: percentile(sorted, 0.95),
+              p99Ms: percentile(sorted, 0.99),
+              requests: sorted.length
+            }
+          ];
+        })
+    );
+
+    return {
+      bytesFromClient: this.#bytesFromClient,
+      bytesFromServer: this.#bytesFromServer,
+      exchanges: this.#exchanges,
+      ...(this.#firstStartedAt === undefined ? {} : { firstStartedAt: this.#firstStartedAt }),
+      ...(this.#lastCompletedAt === undefined ? {} : { lastCompletedAt: this.#lastCompletedAt }),
+      methods,
+      schemaVersion: 1
+    };
+  }
+}
+
 function percentile(sortedValues: readonly number[], quantile: number): number {
   if (sortedValues.length === 0) {
     return 0;
@@ -28,52 +87,11 @@ function percentile(sortedValues: readonly number[], quantile: number): number {
 }
 
 export function summarizeExchanges(exchanges: readonly RecordedExchange[]): RecordingSummary {
-  const durations = new Map<string, number[]>();
-  const errors = new Map<string, number>();
-  let bytesFromClient = 0;
-  let bytesFromServer = 0;
-
+  const builder = new RecordingSummaryBuilder();
   for (const exchange of exchanges) {
-    const method = exchange.request.metadata.method;
-    const methodDurations = durations.get(method) ?? [];
-    methodDurations.push(exchange.durationMs);
-    durations.set(method, methodDurations);
-    if (exchange.error !== undefined || exchange.response.status >= 400) {
-      errors.set(method, (errors.get(method) ?? 0) + 1);
-    }
-    bytesFromClient += exchange.request.bytes;
-    bytesFromServer += exchange.response.bytes;
+    builder.add(exchange);
   }
-
-  const methods = Object.fromEntries(
-    [...durations.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([method, values]) => {
-        const sorted = [...values].sort((left, right) => left - right);
-        return [
-          method,
-          {
-            errors: errors.get(method) ?? 0,
-            p50Ms: percentile(sorted, 0.5),
-            p95Ms: percentile(sorted, 0.95),
-            p99Ms: percentile(sorted, 0.99),
-            requests: sorted.length
-          }
-        ];
-      })
-  );
-  const firstExchange = exchanges[0];
-  const lastExchange = exchanges.at(-1);
-
-  return {
-    bytesFromClient,
-    bytesFromServer,
-    exchanges: exchanges.length,
-    ...(firstExchange === undefined ? {} : { firstStartedAt: firstExchange.startedAt }),
-    ...(lastExchange === undefined ? {} : { lastCompletedAt: lastExchange.completedAt }),
-    methods,
-    schemaVersion: 1
-  };
+  return builder.build();
 }
 
 export async function inspectRecording(path: string): Promise<RecordingSummary> {

@@ -6,7 +6,7 @@
     <title>MCP Trace — Security-first MCP observability gateway</title>
     <meta
       name="description"
-      content="MCP Trace is an open-source Model Context Protocol observability gateway for Streamable HTTP. Trace, measure, record, inspect, and safely replay MCP JSON-RPC and SSE traffic."
+      content="MCP Trace is an open-source Model Context Protocol observability gateway for Streamable HTTP. Trace, record, inspect offline, and safely replay MCP JSON-RPC and SSE traffic."
     />
     <link rel="canonical" href="https://ryux1.github.io/mcp-trace/" />
     <meta property="og:type" content="website" />
@@ -238,8 +238,8 @@
         <h1>See the MCP traffic you actually operate.</h1>
         <p class="lead">
           A transparent, security-first observability gateway for modern MCP Streamable HTTP. Trace,
-          measure, record, inspect, and safely replay JSON-RPC and SSE traffic without modifying the
-          client or server.
+          measure, record, inspect offline, and safely replay JSON-RPC and SSE traffic without
+          modifying the client or server.
         </p>
         <div class="actions">
           <a class="button" href="https://github.com/ryux1/mcp-trace#start-in-30-seconds"
@@ -266,7 +266,7 @@
             <h3>Security-first</h3>
             <p>
               Records metadata only by default, strips credentials, hashes legacy sessions, and
-              requires explicit replay execution.
+              produces body-free offline reports without opening a listener.
             </p>
           </article>
           <article class="card">
