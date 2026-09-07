@@ -8,8 +8,8 @@ commit.
 
 1. Set the GitHub repository description to:
 
-   > Security-first Model Context Protocol observability gateway for Streamable HTTP recording,
-   > inspection, tracing, and replay.
+   > Security-first Model Context Protocol observability proxy for stdio and Streamable HTTP
+   > recording, inspection, tracing, and replay.
 
 2. Set the website to `https://ryux1.github.io/mcp-trace/` and add these topics: `developer-tools`,
    `mcp`, `mcp-observability`, `mcp-proxy`, `model-context-protocol`, `opentelemetry`, `prometheus`,
@@ -24,7 +24,7 @@ The description, website, and topics can be applied after authenticating the Git
 
 ```bash
 gh repo edit ryux1/mcp-trace \
-  --description "Security-first Model Context Protocol observability gateway for Streamable HTTP recording, inspection, tracing, and replay." \
+  --description "Security-first Model Context Protocol observability proxy for stdio and Streamable HTTP recording, inspection, tracing, and replay." \
   --homepage "https://ryux1.github.io/mcp-trace/" \
   --add-topic developer-tools \
   --add-topic mcp \

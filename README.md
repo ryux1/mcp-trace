@@ -5,9 +5,9 @@
 [![Release](https://img.shields.io/github/v/release/ryux1/mcp-trace)](https://github.com/ryux1/mcp-trace/releases)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Security-first Model Context Protocol observability for Streamable HTTP.** Put one transparent
-gateway between an MCP client and a fixed upstream server to trace, measure, record, inspect, and
-safely replay JSON-RPC and SSE traffic.
+**Security-first Model Context Protocol observability for stdio and Streamable HTTP.** Put one
+transparent proxy between an MCP client and a fixed upstream server to trace, measure, record,
+inspect, and safely replay JSON-RPC and SSE traffic.
 
 > **Status:** early preview (`0.x`). The protocol boundary, recording schema, and CLI may evolve
 > before `1.0`. Current limits are documented rather than hidden.
@@ -52,8 +52,8 @@ MCP Trace keeps the boundary narrow:
 - **Replay-conscious:** plans a dry run unless `--execute` is supplied and skips unsafe entries.
 - **Auditable:** does not implement MCP methods, terminate authorization, or select upstreams.
 
-Use MCP Trace when you operate a fixed Streamable HTTP endpoint and need evidence without modifying
-the client or server. Use the official
+Use MCP Trace when you operate a fixed Streamable HTTP endpoint or local stdio server and need
+evidence without modifying the client or server. Use the official
 [MCP Inspector](https://github.com/modelcontextprotocol/inspector) when you need an active testing
 client. Use a full MCP gateway when you need server discovery, routing, identity, or policy
 enforcement.
@@ -68,12 +68,12 @@ MCP client  ──POST / GET / DELETE──▶  MCP Trace  ──transparent HTT
 
 ## Protocol compatibility
 
-| MCP transport revision            | Status        | Behavior                                                                  |
-| --------------------------------- | ------------- | ------------------------------------------------------------------------- |
-| `2026-07-28` Streamable HTTP      | Supported     | POST, JSON or request-scoped SSE, `Mcp-Method`, `Mcp-Name`, `Mcp-Param-*` |
-| `2025-03-26` through `2025-11-25` | Supported     | POST/GET/DELETE, `Mcp-Session-Id`, `Last-Event-ID`, standalone SSE        |
-| `2024-11-05` HTTP+SSE             | Not targeted  | Separate endpoint discovery is outside this fixed-endpoint gateway        |
-| stdio                             | Not supported | Requires a separate process and trust-boundary design                     |
+| MCP transport revision            | Status       | Behavior                                                                  |
+| --------------------------------- | ------------ | ------------------------------------------------------------------------- |
+| `2026-07-28` Streamable HTTP      | Supported    | POST, JSON or request-scoped SSE, `Mcp-Method`, `Mcp-Name`, `Mcp-Param-*` |
+| `2025-03-26` through `2025-11-25` | Supported    | POST/GET/DELETE, `Mcp-Session-Id`, `Last-Event-ID`, standalone SSE        |
+| `2024-11-05` HTTP+SSE             | Not targeted | Separate endpoint discovery is outside this fixed-endpoint gateway        |
+| stdio                             | Supported    | Exact-byte newline forwarding, child lifecycle, v2 message recordings     |
 
 The [compatibility matrix](docs/compatibility.md) distinguishes verified behavior from planned work.
 Integration tests exercise initialization, `tools/list`, and `tools/call` using the official
@@ -100,6 +100,47 @@ pnpm start -- proxy \
 ```
 
 Point the MCP client at `http://127.0.0.1:7331/mcp`. MCP Trace binds only to `127.0.0.1` by default.
+
+### Local stdio servers
+
+Use `stdio` when the MCP client normally launches a local server process. Everything after `--` is
+passed directly to the executable without a shell:
+
+```bash
+mcp-trace stdio --record ./traffic.ndjson -- node ./server.mjs
+```
+
+An MCP client configuration uses MCP Trace as the server command and places the real server after
+the separator:
+
+```json
+{
+  "mcpServers": {
+    "local-server": {
+      "command": "mcp-trace",
+      "args": [
+        "stdio",
+        "--record",
+        "/absolute/path/to/traffic.ndjson",
+        "--",
+        "node",
+        "/absolute/path/to/server.mjs"
+      ]
+    }
+  }
+}
+```
+
+The child inherits the proxy environment by default, which preserves environment-based MCP server
+configuration. Use `--clear-env` for a minimal launch environment and repeat `--pass-env NAME` for
+each additional variable the server needs. Values are never logged or added to recordings. The child
+still has the same operating-system identity and filesystem access as MCP Trace; this is not a
+sandbox.
+
+Protocol messages are forwarded byte-for-byte and limited to 4 MiB each by default. Child stderr is
+forwarded separately to MCP Trace's stderr and never enters protocol stdout. Metadata-only v2
+message recording is the default; `--record-bodies` adds best-effort-redacted JSON bodies. The
+HTTP-targeted `replay` command skips stdio message entries.
 
 ### Container
 

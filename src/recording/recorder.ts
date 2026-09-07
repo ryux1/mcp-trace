@@ -1,7 +1,7 @@
 import type { WriteStream } from "node:fs";
 import { mkdir, open } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
-import type { RecordedExchange } from "../types.js";
+import type { RecordingEntry } from "../types.js";
 
 export class NdjsonRecorder {
   readonly #path: string;
@@ -33,11 +33,11 @@ export class NdjsonRecorder {
     return this.#path;
   }
 
-  async write(exchange: RecordedExchange): Promise<void> {
+  async write(entry: RecordingEntry): Promise<void> {
     if (this.#closed) {
       throw new Error("Cannot write to a closed recorder");
     }
-    const line = `${JSON.stringify(exchange)}\n`;
+    const line = `${JSON.stringify(entry)}\n`;
     await new Promise<void>((resolveWrite, rejectWrite) => {
       this.#stream.write(line, (error) => {
         if (error === null || error === undefined) {

@@ -35,6 +35,27 @@ and `X-Forwarded-*` headers are stripped so an untrusted client cannot spoof an 
 Supply upstream and OTLP credentials indirectly with `--upstream-header-env` and
 `--otlp-header-env`; URLs containing embedded credentials are rejected.
 
+## stdio child processes
+
+`mcp-trace stdio -- <executable> [arguments...]` starts exactly one fixed child process. The
+executable and argument vector are passed directly to the operating system with `shell: false`;
+shell command strings, interpolation, redirection, and pipelines are not interpreted. Command-line
+arguments may still be visible to other local processes, so do not put credentials in them.
+
+The child inherits MCP Trace's environment by default because local MCP server configurations often
+provide credentials there. Environment names and values are not recorded or logged. Use
+`--clear-env` to retain only platform launch variables such as `PATH`, `SystemRoot`, and temporary
+directory variables, then repeat `--pass-env NAME` for explicitly required values. This reduces
+ambient configuration but does not sandbox the process: the child has the same user identity,
+working directory, filesystem visibility, network access, and inherited operating-system permissions
+as MCP Trace.
+
+stdin and child stdout are newline-framed for observation while their original bytes are forwarded
+unchanged. A message larger than `--max-message` or an unterminated final message closes the proxy
+instead of allowing unbounded buffering. Child stderr is forwarded to MCP Trace's stderr and is
+never parsed, recorded, or mixed into protocol stdout. SIGINT and SIGTERM are sent to the child;
+after `--shutdown-grace`, a child that has not exited is force-terminated.
+
 ## Recording defaults
 
 - No recording occurs unless `--record` is supplied.
@@ -47,6 +68,8 @@ Supply upstream and OTLP credentials indirectly with `--upstream-header-env` and
 - Common Bearer, OpenAI-style, GitHub, and AWS access-key patterns are redacted from text.
 - JSON and SSE bodies are sanitized recursively. Malformed/truncated JSON remains text and receives
   heuristic key/token redaction instead of being stored as reversible base64.
+- stdio v2 entries record direction, size, JSON-RPC kind, request identifier, method, and timing;
+  bodies still require `--record-bodies` and receive the same recursive redaction.
 
 Binary payloads cannot be structurally redacted and are explicitly marked `redacted: false`. Review
 the [recording schema](recording-schema.md).
@@ -90,6 +113,9 @@ Tool calls can send messages, mutate databases, charge accounts, or delete data.
 
 Use replay against an isolated test target whenever possible. The tool cannot determine whether an
 MCP method is idempotent.
+
+The current replay command targets Streamable HTTP and skips v2 stdio message entries. This avoids
+replaying server-to-client requests or detached responses without a live bidirectional session.
 
 ## Telemetry
 

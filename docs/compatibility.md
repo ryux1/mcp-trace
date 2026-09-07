@@ -27,11 +27,13 @@ Node.js line.
 | MCP `_meta` trace fields                    | Verified     | Preserved without rewriting                                                |
 | OTLP/HTTP JSON export                       | Verified     | Completed spans received by a local collector endpoint on shutdown         |
 | Offline HTML recording report               | Verified     | Deterministic rendering, hostile metadata escaping, no remote resources    |
-| Official TypeScript SDK 1.30.0              | Verified     | SDK client and server initialization, `tools/list`, and `tools/call`       |
+| Official TypeScript SDK 1.30.0              | Verified     | HTTP and stdio initialization, `tools/list`, and `tools/call`              |
 | Official Python SDK 2.1.1 on Python 3.13    | Verified     | SDK client and server initialization, `tools/list`, and `tools/call`       |
 | Redirect following                          | Rejected     | Upstream requests use manual redirect handling                             |
 | Legacy `2024-11-05` HTTP+SSE discovery flow | Not targeted | Requires separate endpoint-discovery behavior                              |
-| stdio                                       | Unsupported  | Requires a separately designed process and credential boundary             |
+| stdio newline framing                       | Verified     | Exact-byte forwarding, split/coalesced chunks, CRLF, size and EOF bounds   |
+| stdio child lifecycle                       | Verified     | Normal EOF, abnormal exit propagation, SIGINT/SIGTERM shutdown             |
+| stdio v2 recording                          | Verified     | Both directions, request correlation, metadata-only and redacted bodies    |
 
 The suite verifies protocol behavior at the wire level and includes end-to-end tests using version
 1.30.0 of the official TypeScript SDK and version 2.1.1 of the official Python SDK on both sides of
@@ -46,6 +48,9 @@ report the client/server SDK versions with interoperability issues.
 - Browser `Origin` values are rejected unless explicitly allowed.
 - Non-loopback listeners require explicit `Host` allowlisting.
 - Body recording and replay execution are opt-in.
+- stdio commands are executed directly without a shell; child stderr remains outside protocol
+  stdout.
+- stdio children inherit the current environment unless `--clear-env` is selected.
 - HTML report generation is offline, read-only with respect to the input, and body-value free.
 
 See the [security model](security.md) for the threat boundary and [roadmap](roadmap.md) for the

@@ -7,6 +7,8 @@ All notable changes are documented here. This project follows
 
 ### Added
 
+- Secure stdio process proxying with no-shell execution, byte-transparent bounded framing,
+  bidirectional JSON-RPC correlation, child lifecycle handling, and transport-neutral v2 recordings.
 - Offline, deterministic HTML recording reports with body-free summaries, hostile-value escaping,
   malformed-line accounting, and overwrite protection.
 - CI-verified interoperability with the official Python MCP SDK 2.1.1 on Python 3.13 using an

@@ -1,11 +1,13 @@
 import { trace } from "@opentelemetry/api";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import * as z from "zod/v4";
 import { McpTraceGateway } from "../src/proxy/gateway.js";
@@ -134,5 +136,30 @@ describe("official TypeScript SDK compatibility", () => {
       name: "echo"
     });
     expect(result.content).toEqual([{ text: "through mcp-trace: hello", type: "text" }]);
+  });
+
+  it("initializes, lists tools, and calls a tool through the stdio proxy", async () => {
+    const client = new Client({ name: "mcp-trace-stdio-test-client", version: "1.0.0" });
+    clients.push(client);
+    const transport = new StdioClientTransport({
+      args: [
+        resolve("node_modules/tsx/dist/cli.mjs"),
+        resolve("src/cli.ts"),
+        "stdio",
+        "--log-level",
+        "silent",
+        "--",
+        process.execPath,
+        resolve("test/fixtures/stdio/sdk-server.mjs")
+      ],
+      command: process.execPath,
+      stderr: "pipe"
+    });
+    await client.connect(transport);
+
+    const toolList = await client.listTools();
+    expect(toolList.tools.map((tool) => tool.name)).toContain("echo");
+    const result = await client.callTool({ arguments: { message: "hello" }, name: "echo" });
+    expect(result.content).toEqual([{ text: "through stdio: hello", type: "text" }]);
   });
 });

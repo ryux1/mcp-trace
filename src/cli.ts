@@ -19,6 +19,7 @@ import { generateRecordingReport } from "./recording/report.js";
 import { NdjsonRecorder } from "./recording/recorder.js";
 import { Redactor } from "./recording/redaction.js";
 import { replayRecording } from "./replay/replay.js";
+import { buildChildEnvironment, runStdioProxy } from "./stdio/proxy.js";
 import { createTelemetry } from "./telemetry/tracing.js";
 import type { LogLevel } from "./types.js";
 import { createLogger } from "./utils/logger.js";
@@ -56,6 +57,18 @@ interface ReplayCliOptions {
 interface ReportCliOptions {
   force: boolean;
   output: string;
+}
+
+interface StdioCliOptions {
+  clearEnv: boolean;
+  logLevel: LogLevel;
+  maxMessage: number;
+  maxRecordBody: number;
+  passEnv: string[];
+  record?: string;
+  recordBodies: boolean;
+  redactKey: string[];
+  shutdownGrace: number;
 }
 
 async function waitForShutdown(): Promise<NodeJS.Signals> {
@@ -250,15 +263,99 @@ function reportCommand(): Command {
     });
 }
 
+function stdioCommand(): Command {
+  return new Command("stdio")
+    .description("Trace a local MCP server over stdio")
+    .argument("<executable>", "upstream server executable")
+    .argument("[arguments...]", "arguments passed directly to the executable")
+    .option("--record <path>", "append sanitized NDJSON messages to this file")
+    .option("--record-bodies", "capture sanitized JSON-RPC message bodies", false)
+    .option(
+      "--max-message <size>",
+      "maximum bytes per newline-delimited message",
+      parseByteSize,
+      4 * 1_024 * 1_024
+    )
+    .option(
+      "--max-record-body <size>",
+      "maximum captured bytes per message",
+      parseByteSize,
+      256 * 1_024
+    )
+    .option("--redact-key <key>", "additional JSON key to redact", collect, [] as string[])
+    .option("--clear-env", "start the child with a minimal launch environment", false)
+    .option(
+      "--pass-env <name>",
+      "retain an environment variable with --clear-env; repeatable",
+      collect,
+      [] as string[]
+    )
+    .option(
+      "--shutdown-grace <milliseconds>",
+      "wait before force-killing a child after shutdown",
+      (value) => parsePositiveInteger(value, "Shutdown grace"),
+      5_000
+    )
+    .addOption(
+      new Option("--log-level <level>", "structured log verbosity")
+        .choices(["debug", "info", "warn", "error", "silent"])
+        .default("info")
+        .argParser(parseLogLevel)
+    )
+    .action(async (executable: string, arguments_: string[], options: StdioCliOptions) => {
+      if (options.recordBodies && options.record === undefined) {
+        throw new Error("--record-bodies requires --record");
+      }
+      if (options.maxMessage <= 0) {
+        throw new Error("stdio message limit must be positive");
+      }
+      const environment = buildChildEnvironment(
+        { clear: options.clearEnv, pass: options.passEnv },
+        process.env
+      );
+      const logger = createLogger(options.logLevel);
+      const recorder =
+        options.record === undefined ? undefined : await NdjsonRecorder.create(options.record);
+      const controller = new AbortController();
+      const abort = (): void => controller.abort();
+      process.once("SIGINT", abort);
+      process.once("SIGTERM", abort);
+      try {
+        const result = await runStdioProxy({
+          arguments: arguments_,
+          childEnvironment: environment,
+          executable,
+          logger,
+          maxMessageBytes: options.maxMessage,
+          maxRecordBodyBytes: options.maxRecordBody,
+          recordBodies: options.recordBodies,
+          ...(recorder === undefined ? {} : { recorder }),
+          redactor: new Redactor(options.redactKey),
+          shutdownGraceMs: options.shutdownGrace,
+          signal: controller.signal
+        });
+        if (result.code !== null && result.code !== 0) {
+          process.exitCode = result.code;
+        } else if (result.signal !== null && !controller.signal.aborted) {
+          process.exitCode = 1;
+        }
+      } finally {
+        process.off("SIGINT", abort);
+        process.off("SIGTERM", abort);
+      }
+    });
+}
+
 export function createProgram(): Command {
   return new Command()
     .name("mcp-trace")
-    .description("Observe, record, inspect, report, and replay MCP Streamable HTTP traffic")
+    .description("Observe, record, inspect, report, and replay MCP traffic")
     .version(VERSION)
     .addCommand(proxyCommand())
     .addCommand(inspectCommand())
     .addCommand(reportCommand())
-    .addCommand(replayCommand());
+    .addCommand(replayCommand())
+    .addCommand(stdioCommand());
 }
 
 try {

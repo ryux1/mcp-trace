@@ -15,6 +15,7 @@ export interface RecordingReportData {
   readonly totalLines: number;
   readonly truncatedBodies: number;
   readonly unsupportedLines: number;
+  readonly validEntries: number;
 }
 
 export interface RecordingReportOptions {
@@ -38,6 +39,7 @@ export async function scanRecordingForReport(path: string): Promise<RecordingRep
   let totalLines = 0;
   let truncatedBodies = 0;
   let unsupportedLines = 0;
+  let validEntries = 0;
 
   for await (const line of lines) {
     totalLines += 1;
@@ -53,11 +55,27 @@ export async function scanRecordingForReport(path: string): Promise<RecordingRep
         unsupportedLines += 1;
         break;
       case "exchange": {
+        validEntries += 1;
         builder.add(parsed.exchange);
         for (const body of [parsed.exchange.request.body, parsed.exchange.response.body]) {
           if (!isObject(body)) {
             continue;
           }
+          capturedBodies += 1;
+          if (body.redacted === true) {
+            redactedBodies += 1;
+          }
+          if (body.truncated === true) {
+            truncatedBodies += 1;
+          }
+        }
+        break;
+      }
+      case "message": {
+        validEntries += 1;
+        builder.addMessage(parsed.message);
+        const body = parsed.message.body;
+        if (isObject(body)) {
           capturedBodies += 1;
           if (body.redacted === true) {
             redactedBodies += 1;
@@ -79,7 +97,8 @@ export async function scanRecordingForReport(path: string): Promise<RecordingRep
     summary: builder.build(),
     totalLines,
     truncatedBodies,
-    unsupportedLines
+    unsupportedLines,
+    validEntries
   };
 }
 
@@ -116,6 +135,8 @@ function formatBytes(value: number): string {
 
 export function renderRecordingReport(data: RecordingReportData): string {
   const { summary } = data;
+  const schemaLabel =
+    typeof summary.schemaVersion === "number" ? `v${summary.schemaVersion}` : summary.schemaVersion;
   const errors = Object.values(summary.methods).reduce((total, method) => total + method.errors, 0);
   const captureState =
     data.capturedBodies === 0 ? "No captured bodies" : `${data.capturedBodies} captured bodies`;
@@ -176,12 +197,13 @@ export function renderRecordingReport(data: RecordingReportData): string {
   </head>
   <body>
     <main>
-      <div class="eyebrow">Offline · read only · reader schema v${summary.schemaVersion}</div>
+      <div class="eyebrow">Offline · read only · reader schema ${schemaLabel}</div>
       <h1>MCP Trace recording report</h1>
-      <p class="muted">A deterministic summary of valid exchanges. The source path, headers, bodies, and error messages are not embedded.</p>
+      <p class="muted">A deterministic summary of valid exchanges and messages. The source path, headers, bodies, and error messages are not embedded.</p>
 
       <section class="grid" aria-label="Recording summary">
         <div class="card">Requests<strong>${formatInteger(summary.exchanges)}</strong></div>
+        <div class="card">stdio messages<strong>${formatInteger(summary.messages)}</strong></div>
         <div class="card">Failures<strong>${formatInteger(errors)}</strong></div>
         <div class="card">Client bytes<strong>${formatBytes(summary.bytesFromClient)}</strong></div>
         <div class="card">Server bytes<strong>${formatBytes(summary.bytesFromServer)}</strong></div>
@@ -203,8 +225,8 @@ ${methodTableBody}
       <h2>Input accounting</h2>
       <section class="grid" aria-label="Input line accounting">
         <div class="card">Total lines<strong>${formatInteger(data.totalLines)}</strong></div>
-        <div class="card">Valid exchanges<strong>${formatInteger(summary.exchanges)}</strong></div>
-        <div class="card">Recognized schema<strong>${summary.exchanges === 0 ? "None" : `v${summary.schemaVersion}`}</strong></div>
+        <div class="card">Valid entries<strong>${formatInteger(data.validEntries)}</strong></div>
+        <div class="card">Recognized schema<strong>${data.validEntries === 0 ? "None" : schemaLabel}</strong></div>
         <div class="card">Invalid JSON<strong>${formatInteger(data.invalidJsonLines)}</strong></div>
         <div class="card">Unsupported entries<strong>${formatInteger(data.unsupportedLines)}</strong></div>
         <div class="card">Blank lines skipped<strong>${formatInteger(data.skippedBlankLines)}</strong></div>

@@ -1,4 +1,4 @@
-import type { RecordedExchange } from "../types.js";
+import type { RecordedExchange, RecordedStdioMessage, RecordingEntry } from "../types.js";
 import { readRecording } from "./reader.js";
 
 interface MethodSummary {
@@ -16,7 +16,8 @@ export interface RecordingSummary {
   readonly firstStartedAt?: string;
   readonly lastCompletedAt?: string;
   readonly methods: Readonly<Record<string, MethodSummary>>;
-  readonly schemaVersion: 1;
+  readonly messages: number;
+  readonly schemaVersion: 1 | 2 | "mixed";
 }
 
 function compareStrings(left: string, right: string): number {
@@ -26,17 +27,22 @@ function compareStrings(left: string, right: string): number {
 export class RecordingSummaryBuilder {
   readonly #durations = new Map<string, number[]>();
   readonly #errors = new Map<string, number>();
+  readonly #requests = new Map<string, number>();
+  readonly #schemaVersions = new Set<1 | 2>();
   #bytesFromClient = 0;
   #bytesFromServer = 0;
   #exchanges = 0;
   #firstStartedAt?: string;
   #lastCompletedAt?: string;
+  #messages = 0;
 
   add(exchange: RecordedExchange): void {
+    this.#schemaVersions.add(1);
     const method = exchange.request.metadata.method;
     const methodDurations = this.#durations.get(method) ?? [];
     methodDurations.push(exchange.durationMs);
     this.#durations.set(method, methodDurations);
+    this.#requests.set(method, (this.#requests.get(method) ?? 0) + 1);
     if (exchange.error !== undefined || exchange.response.status >= 400) {
       this.#errors.set(method, (this.#errors.get(method) ?? 0) + 1);
     }
@@ -47,12 +53,52 @@ export class RecordingSummaryBuilder {
     this.#lastCompletedAt = exchange.completedAt;
   }
 
+  addMessage(message: RecordedStdioMessage): void {
+    this.#schemaVersions.add(2);
+    this.#messages += 1;
+    if (message.direction === "client-to-server") {
+      this.#bytesFromClient += message.bytes;
+    } else {
+      this.#bytesFromServer += message.bytes;
+    }
+    this.#firstStartedAt ??= message.observedAt;
+    this.#lastCompletedAt = message.observedAt;
+    if (message.metadata.kind === "request") {
+      this.#exchanges += 1;
+      this.#requests.set(
+        message.metadata.method,
+        (this.#requests.get(message.metadata.method) ?? 0) + 1
+      );
+    }
+    if (message.metadata.kind === "response" && message.durationMs !== undefined) {
+      const values = this.#durations.get(message.metadata.method) ?? [];
+      values.push(message.durationMs);
+      this.#durations.set(message.metadata.method, values);
+    }
+    if (message.metadata.kind === "response" && message.metadata.isError === true) {
+      this.#errors.set(
+        message.metadata.method,
+        (this.#errors.get(message.metadata.method) ?? 0) + 1
+      );
+    }
+  }
+
+  addEntry(entry: RecordingEntry): void {
+    if (entry.schemaVersion === 1) {
+      this.add(entry);
+    } else {
+      this.addMessage(entry);
+    }
+  }
+
   build(): RecordingSummary {
     const methods = Object.fromEntries(
-      [...this.#durations.entries()]
+      [...this.#requests.entries()]
         .sort(([left], [right]) => compareStrings(left, right))
-        .map(([method, values]) => {
-          const sorted = [...values].sort((left, right) => left - right);
+        .map(([method, requests]) => {
+          const sorted = [...(this.#durations.get(method) ?? [])].sort(
+            (left, right) => left - right
+          );
           return [
             method,
             {
@@ -60,7 +106,7 @@ export class RecordingSummaryBuilder {
               p50Ms: percentile(sorted, 0.5),
               p95Ms: percentile(sorted, 0.95),
               p99Ms: percentile(sorted, 0.99),
-              requests: sorted.length
+              requests
             }
           ];
         })
@@ -72,8 +118,15 @@ export class RecordingSummaryBuilder {
       exchanges: this.#exchanges,
       ...(this.#firstStartedAt === undefined ? {} : { firstStartedAt: this.#firstStartedAt }),
       ...(this.#lastCompletedAt === undefined ? {} : { lastCompletedAt: this.#lastCompletedAt }),
+      messages: this.#messages,
       methods,
-      schemaVersion: 1
+      schemaVersion:
+        this.#schemaVersions.size === 0 ||
+        (this.#schemaVersions.size === 1 && this.#schemaVersions.has(1))
+          ? 1
+          : this.#schemaVersions.size === 1
+            ? 2
+            : "mixed"
     };
   }
 }
@@ -95,9 +148,9 @@ export function summarizeExchanges(exchanges: readonly RecordedExchange[]): Reco
 }
 
 export async function inspectRecording(path: string): Promise<RecordingSummary> {
-  const exchanges: RecordedExchange[] = [];
-  for await (const exchange of readRecording(path)) {
-    exchanges.push(exchange);
+  const builder = new RecordingSummaryBuilder();
+  for await (const entry of readRecording(path)) {
+    builder.addEntry(entry);
   }
-  return summarizeExchanges(exchanges);
+  return builder.build();
 }
