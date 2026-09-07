@@ -20,7 +20,9 @@ import {
 import {
   capturedHeaders,
   forwardingRequestHeaders,
-  forwardingResponseHeaders
+  forwardingResponseHeaders,
+  headerValue,
+  type HeaderSource
 } from "../recording/headers.js";
 import type { NdjsonRecorder } from "../recording/recorder.js";
 import { Redactor } from "../recording/redaction.js";
@@ -28,6 +30,7 @@ import { MetricsRegistry } from "../telemetry/metrics.js";
 import type { TelemetryRuntime } from "../telemetry/tracing.js";
 import { extractMcpMetadata } from "./protocol.js";
 import { isHostAllowed, isOriginAllowed } from "./security.js";
+import { requestUpstream } from "./upstream.js";
 
 const DEFAULT_MAX_REQUEST_BYTES = 4 * 1_024 * 1_024;
 const DEFAULT_MAX_RECORD_BODY_BYTES = 256 * 1_024;
@@ -57,7 +60,7 @@ interface MutableExchangeState {
   requestBody: Buffer;
   responseBody: LimitedBuffer;
   responseContentType: string | undefined;
-  responseHeaders: Headers;
+  responseHeaders: HeaderSource;
   responseStatus: number;
 }
 
@@ -120,7 +123,7 @@ export class McpTraceGateway {
   readonly #allowedHosts: ReadonlySet<string>;
   readonly #allowedOrigins: ReadonlySet<string>;
   readonly #endpointPath: string;
-  readonly #fetch: typeof fetch;
+  readonly #fetch: typeof fetch | undefined;
   readonly #host: string;
   readonly #logger: Logger;
   readonly #maxRecordBodyBytes: number;
@@ -143,7 +146,7 @@ export class McpTraceGateway {
     this.#allowedHosts = new Set(options.allowedHosts ?? []);
     this.#allowedOrigins = new Set(options.allowedOrigins ?? []);
     this.#endpointPath = options.endpointPath ?? "/mcp";
-    this.#fetch = options.fetchImplementation ?? fetch;
+    this.#fetch = options.fetchImplementation;
     this.#host = options.host ?? "127.0.0.1";
     this.#logger = options.logger ?? silentLogger;
     this.#maxRecordBodyBytes = options.maxRecordBodyBytes ?? DEFAULT_MAX_RECORD_BODY_BYTES;
@@ -313,22 +316,25 @@ export class McpTraceGateway {
 
         const headers = forwardingRequestHeaders(request.headers);
         for (const [name, value] of Object.entries(this.#upstreamHeaders)) {
-          headers.set(name, value);
+          headers[name.toLowerCase()] = value;
         }
         propagation.inject(context.active(), headers, {
-          set: (carrier, key, value) => carrier.set(key, value)
+          set: (carrier, key, value) => {
+            carrier[key.toLowerCase()] = value;
+          }
         });
 
         const method = request.method ?? "POST";
-        const upstreamResponse = await this.#fetch(targetUrl(this.#upstream, incoming), {
+        const upstreamResponse = await requestUpstream({
           ...(method === "POST" ? { body: state.requestBody } : {}),
+          ...(this.#fetch === undefined ? {} : { fetchImplementation: this.#fetch }),
           headers,
           method,
-          redirect: "manual",
-          signal: controller.signal
+          signal: controller.signal,
+          url: targetUrl(this.#upstream, incoming)
         });
         state.responseHeaders = upstreamResponse.headers;
-        state.responseContentType = upstreamResponse.headers.get("content-type") ?? undefined;
+        state.responseContentType = headerValue(upstreamResponse.headers, "content-type");
         state.responseStatus = upstreamResponse.status;
         span.setAttribute("http.response.status_code", upstreamResponse.status);
         if (upstreamResponse.status >= 500) {
@@ -348,23 +354,14 @@ export class McpTraceGateway {
           return;
         }
 
-        const reader = upstreamResponse.body.getReader();
-        try {
-          while (true) {
-            const result = await reader.read();
-            if (result.done) {
-              break;
-            }
-            if (!(result.value instanceof Uint8Array)) {
-              throw new TypeError("Upstream returned a non-byte response chunk");
-            }
-            state.responseBody.add(result.value);
-            await writeResponseChunk(response, result.value);
+        for await (const chunk of upstreamResponse.body) {
+          if (!(chunk instanceof Uint8Array)) {
+            throw new TypeError("Upstream returned a non-byte response chunk");
           }
-          response.end();
-        } finally {
-          reader.releaseLock();
+          state.responseBody.add(chunk);
+          await writeResponseChunk(response, chunk);
         }
+        response.end();
       } catch (error) {
         state.error = error instanceof Error ? error : new Error(String(error));
         span.recordException(state.error);

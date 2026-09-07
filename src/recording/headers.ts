@@ -23,7 +23,7 @@ const HOP_BY_HOP_HEADERS = new Set([
   "upgrade"
 ]);
 
-type HeaderSource = Headers | IncomingHttpHeaders | OutgoingHttpHeaders;
+export type HeaderSource = Headers | IncomingHttpHeaders | OutgoingHttpHeaders;
 
 function entries(source: HeaderSource): [string, string][] {
   if (source instanceof Headers) {
@@ -67,8 +67,8 @@ export function capturedHeaders(source: HeaderSource, redactor: Redactor): Recor
   );
 }
 
-export function forwardingRequestHeaders(source: IncomingHttpHeaders): Headers {
-  const target = new Headers();
+export function forwardingRequestHeaders(source: IncomingHttpHeaders): Record<string, string> {
+  const target: Record<string, string> = {};
   const dynamicHopByHop = dynamicHopByHopHeaders(source);
   for (const [name, value] of entries(source)) {
     const normalizedName = name.toLowerCase();
@@ -83,25 +83,42 @@ export function forwardingRequestHeaders(source: IncomingHttpHeaders): Headers {
     ) {
       continue;
     }
-    target.append(name, value);
+    target[normalizedName] =
+      normalizedName in target ? `${target[normalizedName]}, ${value}` : value;
   }
-  target.set("accept-encoding", "identity");
-  target.set("via", "1.1 mcp-trace");
+  target["accept-encoding"] = "identity";
+  target.via = "1.1 mcp-trace";
   return target;
 }
 
-export function forwardingResponseHeaders(source: Headers): Record<string, string | string[]> {
+export function headerValue(source: HeaderSource, name: string): string | undefined {
+  if (source instanceof Headers) {
+    return source.get(name) ?? undefined;
+  }
+  const value = source[name.toLowerCase()];
+  if (value === undefined) {
+    return undefined;
+  }
+  return Array.isArray(value) ? value.join(", ") : String(value);
+}
+
+export function forwardingResponseHeaders(source: HeaderSource): Record<string, string | string[]> {
   const target: Record<string, string | string[]> = {};
   const dynamicHopByHop = dynamicHopByHopHeaders(source);
-  for (const [name, value] of source.entries()) {
+  for (const [name, value] of entries(source)) {
     const normalizedName = name.toLowerCase();
     if (HOP_BY_HOP_HEADERS.has(normalizedName) || dynamicHopByHop.has(normalizedName)) {
       continue;
     }
     if (normalizedName === "set-cookie") {
-      target[name] = source.getSetCookie();
-    } else if (!(name in target)) {
-      target[name] = value;
+      if (source instanceof Headers) {
+        target[normalizedName] = source.getSetCookie();
+      } else {
+        const current = target[normalizedName];
+        target[normalizedName] = Array.isArray(current) ? [...current, value] : [value];
+      }
+    } else if (!(normalizedName in target)) {
+      target[normalizedName] = value;
     }
   }
   return target;

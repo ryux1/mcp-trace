@@ -24,12 +24,12 @@ export class LimitedBuffer {
   }
 
   add(chunk: Uint8Array): void {
-    const buffer = Buffer.from(chunk);
-    this.#bytes += buffer.byteLength;
+    this.#bytes += chunk.byteLength;
     const remaining = this.#limit - this.#storedBytes;
     if (remaining <= 0) {
       return;
     }
+    const buffer = Buffer.from(chunk);
     const stored = buffer.subarray(0, remaining);
     this.#chunks.push(stored);
     this.#storedBytes += stored.byteLength;

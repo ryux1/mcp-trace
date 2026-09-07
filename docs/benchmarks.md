@@ -21,6 +21,29 @@ endorsement.
 The complete samples and environment fields are in
 [`benchmark-results/v0.2.0-linux-x64-node24.json`](benchmark-results/v0.2.0-linux-x64-node24.json).
 
+### Native HTTP candidate
+
+Issue #30 replaces the default Fetch/Web Streams upstream hop with Node's native HTTP/HTTPS client
+while retaining the injectable Fetch path. The before and after samples below were collected on the
+same Linux x64 host with Node.js 24.20.0. Each contains seven alternating runs of 3,000 requests at
+concurrency 32; optional feature scenarios use 200 requests per run.
+
+| Scenario | Transport | Median p50 | Median p95 | Median throughput |
+| -------- | --------- | ---------- | ---------- | ----------------- |
+| JSON     | Fetch     | 15.495 ms  | 22.168 ms  | 1,944.5 req/s     |
+| JSON     | Native    | 14.537 ms  | 18.815 ms  | 2,124.6 req/s     |
+| SSE      | Fetch     | 16.293 ms  | 22.346 ms  | 1,867.2 req/s     |
+| SSE      | Native    | 14.210 ms  | 17.992 ms  | 2,190.5 req/s     |
+
+In these samples, native transport increased JSON throughput by 9.3% and SSE throughput by 17.3%,
+while reducing p95 by 15.1% and 19.5%, respectively. The measured proxy-overhead delta also varies
+with the direct reference, so the table reports absolute proxied results instead of presenting the
+delta alone. These are loopback samples from one machine, not a production-capacity claim.
+
+The complete version 2 datasets are the
+[`before`](benchmark-results/issue-30-before-linux-x64-node24.json) and
+[`native HTTP`](benchmark-results/issue-30-native-http-linux-x64-node24.json) results.
+
 ## Reproduce the baseline
 
 ```bash

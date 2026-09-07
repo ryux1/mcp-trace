@@ -19,6 +19,12 @@ All notable changes are documented here. This project follows
 - Preserve the `mcp-trace` executable in npm 12 package manifests and smoke-test the exact
   npm-packed artifact used by the release workflow.
 
+### Changed
+
+- Use Node's native HTTP/HTTPS client for the default upstream hop, reducing loopback JSON and SSE
+  latency and increasing throughput while preserving streaming, cancellation, manual redirects,
+  header hardening, and custom Fetch injection.
+
 ## 0.2.0 - 2026-08-14
 
 ### Added

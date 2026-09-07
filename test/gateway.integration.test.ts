@@ -1,6 +1,12 @@
 import { trace } from "@opentelemetry/api";
 import { createServer, request as httpRequest, type Server } from "node:http";
+import { readFileSync } from "node:fs";
 import { mkdtemp, rm } from "node:fs/promises";
+import {
+  createServer as createHttpsServer,
+  globalAgent as httpsGlobalAgent,
+  type Server as HttpsServer
+} from "node:https";
 import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,8 +20,17 @@ import type { TelemetryRuntime } from "../src/telemetry/tracing.js";
 import { bufferFromUnknown } from "./helpers.js";
 
 const gateways: McpTraceGateway[] = [];
-const servers: Server[] = [];
+const servers: (Server | HttpsServer)[] = [];
 const temporaryDirectories: string[] = [];
+const originalHttpsCa = httpsGlobalAgent.options.ca;
+const tlsCertificate = readFileSync(
+  new URL("./fixtures/tls/localhost-cert.pem", import.meta.url),
+  "utf8"
+);
+const tlsPrivateKey = readFileSync(
+  new URL("./fixtures/tls/localhost-key.pem", import.meta.url),
+  "utf8"
+);
 
 function fakeTelemetry(): TelemetryRuntime {
   return {
@@ -24,7 +39,7 @@ function fakeTelemetry(): TelemetryRuntime {
   };
 }
 
-async function listen(server: Server, path = "/mcp"): Promise<URL> {
+async function listen(server: Server | HttpsServer, path = "/mcp"): Promise<URL> {
   servers.push(server);
   await new Promise<void>((resolve, reject) => {
     server.once("error", reject);
@@ -32,6 +47,12 @@ async function listen(server: Server, path = "/mcp"): Promise<URL> {
   });
   const address = server.address() as AddressInfo;
   return new URL(`http://127.0.0.1:${address.port}${path}`);
+}
+
+async function listenHttps(server: HttpsServer, path = "/mcp"): Promise<URL> {
+  const url = await listen(server, path);
+  url.protocol = "https:";
+  return url;
 }
 
 async function startGateway(
@@ -87,6 +108,7 @@ async function readEntries(path: string): Promise<RecordedExchange[]> {
 }
 
 afterEach(async () => {
+  httpsGlobalAgent.options.ca = originalHttpsCa;
   await Promise.all(gateways.splice(0).map(async (gateway) => gateway.close()));
   await Promise.all(
     servers.splice(0).map(
@@ -285,6 +307,91 @@ describe("MCP tracing gateway", () => {
     expect(entries[0]?.response.body).toMatchObject({ format: "text", redacted: true });
     expect(entries[0]?.response.body?.value).toContain(`"token":"${REDACTED}"`);
     expect(JSON.stringify(entries[0])).not.toContain("sk-abcdefghijklmnop");
+  });
+
+  it("cancels the native upstream request when an SSE client disconnects", async () => {
+    let observedUpstreamClose: (() => void) | undefined;
+    const upstreamClosed = new Promise<void>((resolve) => {
+      observedUpstreamClose = resolve;
+    });
+    const upstream = await listen(
+      createServer((_request, response) => {
+        response.once("close", () => observedUpstreamClose?.());
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.write("data: first\n\n");
+      })
+    );
+    const { url } = await startGateway(upstream);
+
+    const response = await fetch(url);
+    const reader = response.body?.getReader();
+    expect(reader).toBeDefined();
+    expect(
+      bufferFromUnknown((await reader?.read())?.value ?? new Uint8Array()).toString()
+    ).toContain("data: first");
+    await reader?.cancel();
+    await upstreamClosed;
+  });
+
+  it("preserves manual redirects and multiple Set-Cookie headers", async () => {
+    let redirectedHits = 0;
+    const upstream = await listen(
+      createServer((request, response) => {
+        if (request.url === "/redirected") {
+          redirectedHits += 1;
+          response.end("unexpected follow");
+          return;
+        }
+        response.setHeader("location", "/redirected");
+        response.setHeader("set-cookie", ["one=1; HttpOnly", "two=2; Secure"]);
+        response.writeHead(307);
+        response.end();
+      })
+    );
+    const { url } = await startGateway(upstream);
+
+    const response = await fetch(url, { redirect: "manual" });
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("/redirected");
+    expect(response.headers.getSetCookie()).toEqual(["one=1; HttpOnly", "two=2; Secure"]);
+    expect(redirectedHits).toBe(0);
+  });
+
+  it("uses the native HTTPS transport for trusted TLS upstreams", async () => {
+    httpsGlobalAgent.options.ca = tlsCertificate;
+    const upstream = await listenHttps(
+      createHttpsServer({ cert: tlsCertificate, key: tlsPrivateKey }, (_request, response) => {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end('{"secure":true}');
+      })
+    );
+    const { url } = await startGateway(upstream);
+
+    const response = await fetch(url);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ secure: true });
+  });
+
+  it("retains the injectable Fetch transport", async () => {
+    const requests: { method: string | undefined; redirect: string | undefined }[] = [];
+    const fetchImplementation: typeof fetch = (_input, init) => {
+      requests.push({ method: init?.method, redirect: init?.redirect });
+      return Promise.resolve(
+        new Response('{"custom":true}', {
+          headers: { "content-type": "application/json" },
+          status: 202,
+          statusText: "Accepted"
+        })
+      );
+    };
+    const { url } = await startGateway(new URL("https://unused.invalid/mcp"), {
+      fetchImplementation
+    });
+
+    const response = await fetch(url);
+    expect(response.status).toBe(202);
+    expect(await response.json()).toEqual({ custom: true });
+    expect(requests).toEqual([{ method: "GET", redirect: "manual" }]);
   });
 
   it("rejects unsafe origins, invalid hosts, oversized bodies, and unsupported methods", async () => {

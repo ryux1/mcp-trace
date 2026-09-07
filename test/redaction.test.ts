@@ -115,19 +115,19 @@ describe("recording redaction", () => {
       "mcp-method": "tools/list"
     });
     const forwarded = forwardingRequestHeaders(source);
-    expect(forwarded.get("authorization")).toBe("Bearer abcdefghijklmnop");
-    expect(forwarded.get("connection")).toBeNull();
-    expect(forwarded.get("host")).toBeNull();
-    expect(forwarded.get("forwarded")).toBeNull();
-    expect(forwarded.get("x-forwarded-for")).toBeNull();
-    expect(forwarded.get("accept-encoding")).toBe("identity");
-    expect(forwarded.get("via")).toBe("1.1 mcp-trace");
+    expect(forwarded.authorization).toBe("Bearer abcdefghijklmnop");
+    expect(forwarded).not.toHaveProperty("connection");
+    expect(forwarded).not.toHaveProperty("host");
+    expect(forwarded).not.toHaveProperty("forwarded");
+    expect(forwarded).not.toHaveProperty("x-forwarded-for");
+    expect(forwarded["accept-encoding"]).toBe("identity");
+    expect(forwarded.via).toBe("1.1 mcp-trace");
 
     const dynamic = forwardingRequestHeaders({
       connection: "x-remove-me",
       "x-remove-me": "secret-hop"
     });
-    expect(dynamic.get("x-remove-me")).toBeNull();
+    expect(dynamic).not.toHaveProperty("x-remove-me");
   });
 
   it("preserves multiple Set-Cookie values when forwarding responses", () => {
