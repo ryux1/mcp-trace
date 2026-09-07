@@ -63,6 +63,25 @@ async function waitFor(url, child) {
   throw new Error("Installed MCP Trace process did not become ready");
 }
 
+async function waitForRecording(path, child) {
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    if (child.exitCode !== null) {
+      throw new Error("Installed MCP Trace process exited before recording the request");
+    }
+    try {
+      if ((await readFile(path, "utf8")).includes('"method":"tools/list"')) {
+        return;
+      }
+    } catch (error) {
+      if (error?.code !== "ENOENT") {
+        throw error;
+      }
+    }
+    await new Promise((resolveWait) => setTimeout(resolveWait, 50));
+  }
+  throw new Error("Installed MCP Trace process did not record the proxied request");
+}
+
 async function stop(child) {
   if (child.exitCode !== null || child.signalCode !== null) {
     return;
@@ -158,6 +177,7 @@ try {
   if (!response.ok || !JSON.stringify(await response.json()).includes('"ok":true')) {
     throw new Error("Installed package did not proxy a request successfully");
   }
+  await waitForRecording(recording, gateway);
   await stop(gateway);
   gateway = undefined;
   const reportResult = execFileSync(
