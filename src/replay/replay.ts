@@ -165,7 +165,7 @@ export async function replayRecording(
   let recordingEntries = 0;
   for await (const exchange of readRecording(path)) {
     recordingEntries += 1;
-    const item = replayItem(exchange, options);
+    const item = exchange.schemaVersion === 1 ? replayItem(exchange, options) : undefined;
     if (item !== undefined) {
       source.push(item);
     }

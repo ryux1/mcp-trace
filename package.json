@@ -1,7 +1,7 @@
 {
   "name": "@ryux1/mcp-trace",
   "version": "0.2.0",
-  "description": "Security-first Model Context Protocol observability gateway for Streamable HTTP recording, inspection, tracing, and replay.",
+  "description": "Security-first Model Context Protocol observability proxy for stdio and Streamable HTTP recording, inspection, tracing, and replay.",
   "type": "module",
   "license": "MIT",
   "author": "Ryu <code@ryux1.dev>",

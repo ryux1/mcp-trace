@@ -96,7 +96,7 @@ describe("offline recording reports", () => {
     expect(first).not.toMatch(/\s(?:href|src)=/u);
     expect(first).toContain("default-src 'none'");
     expect(createHash("sha256").update(first).digest("hex")).toBe(
-      "f32e4f7cfc802a59036145edcce2ddf783ed0f8a15add52d67b9f2f7a058240b"
+      "b7f228ff94101e96e70212eddb1faa4b89ef7ab28c1bf8fff6a628b260ea5488"
     );
   });
 

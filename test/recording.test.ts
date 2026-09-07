@@ -71,7 +71,9 @@ describe("NDJSON recordings", () => {
 
     const entries: RecordedExchange[] = [];
     for await (const entry of readRecording(path)) {
-      entries.push(entry);
+      if (entry.schemaVersion === 1) {
+        entries.push(entry);
+      }
     }
     expect(entries.map(({ id }) => id).sort()).toEqual(["1", "2", "3"]);
 
@@ -103,6 +105,7 @@ describe("NDJSON recordings", () => {
       bytesFromClient: 0,
       bytesFromServer: 0,
       exchanges: 0,
+      messages: 0,
       methods: {},
       schemaVersion: 1
     });

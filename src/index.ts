@@ -18,6 +18,12 @@ export {
 export { NdjsonRecorder } from "./recording/recorder.js";
 export { REDACTED, Redactor } from "./recording/redaction.js";
 export { replayRecording, type ReplayOptions, type ReplaySummary } from "./replay/replay.js";
+export {
+  buildChildEnvironment,
+  runStdioProxy,
+  type StdioProxyOptions,
+  type StdioProxyResult
+} from "./stdio/proxy.js";
 export { MetricsRegistry } from "./telemetry/metrics.js";
 export {
   createTelemetry,
@@ -30,5 +36,8 @@ export type {
   Logger,
   LogLevel,
   McpMetadata,
-  RecordedExchange
+  RecordedExchange,
+  RecordedStdioMessage,
+  RecordingEntry,
+  StdioDirection
 } from "./types.js";

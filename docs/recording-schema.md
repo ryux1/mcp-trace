@@ -45,6 +45,42 @@ written final line can be identified without invalidating earlier entries.
 `traceId` is omitted when no valid span context exists. `error` is included when proxying or
 streaming fails.
 
+## Version 2: stdio messages
+
+stdio is a bidirectional stream: either side can send a request, response, or notification, and a
+single HTTP-shaped exchange cannot represent that honestly. Each observed stdio message therefore
+occupies its own v2 entry:
+
+```json
+{
+  "schemaVersion": 2,
+  "transport": "stdio",
+  "id": "36bc0053-4654-4b17-822f-f2f6f41db458",
+  "observedAt": "2026-09-07T12:00:00.018Z",
+  "direction": "server-to-client",
+  "bytes": 48,
+  "durationMs": 18.104,
+  "metadata": {
+    "kind": "response",
+    "method": "tools/list",
+    "id": 1,
+    "mismatches": []
+  }
+}
+```
+
+`direction` is `client-to-server` or `server-to-client`. `kind` is `request`, `response`,
+`notification`, or `unknown`. For a correlated response, `method` is copied from the matching
+request and `durationMs` measures the interval between observing the two messages. Identifier type
+is part of correlation, so numeric `1` and string `"1"` remain distinct. Unmatched responses and
+malformed messages use `method: "unknown"` and omit `durationMs`. JSON-RPC error responses add
+`isError: true`; the error payload itself remains absent unless body capture is explicitly enabled.
+
+The executable, arguments, working directory, and child environment are deliberately absent. They
+can contain credentials or private paths. With `--record-bodies`, a v2 entry can contain the same
+`CapturedBody` representation described below. Newline delimiters are framing and are not included
+in `bytes` or captured content.
+
 ## Captured bodies
 
 With `--record-bodies`, `request.body` and `response.body` can contain:
@@ -81,9 +117,12 @@ server enforce the protocol.
 
 ## Compatibility
 
-Readers must reject unknown `schemaVersion` values rather than guessing. Future additive fields can
-be ignored. A future breaking representation will increment `schemaVersion`.
+Readers accept the v1 HTTP exchange and v2 stdio message representations and must reject unknown
+`schemaVersion` values rather than guessing. Future additive fields can be ignored. A future
+breaking representation will increment `schemaVersion`.
 
 The offline report is a diagnostic exception: it never interprets unknown versions, but counts and
-skips those lines so valid v1 exchanges in the same file can still be summarized. `inspect` and
-replay remain strict and stop at the first malformed or unsupported entry.
+skips those lines so recognized entries in the same file can still be summarized. `inspect` remains
+strict and stops at the first malformed or unsupported entry. HTTP replay reads both versions but
+skips v2 stdio messages because they cannot be safely reconstructed outside their bidirectional
+session.

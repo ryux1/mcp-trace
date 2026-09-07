@@ -6,14 +6,14 @@
     <title>MCP Trace — Security-first MCP observability gateway</title>
     <meta
       name="description"
-      content="MCP Trace is an open-source Model Context Protocol observability gateway for Streamable HTTP. Trace, record, inspect offline, and safely replay MCP JSON-RPC and SSE traffic."
+      content="MCP Trace is an open-source Model Context Protocol observability proxy for stdio and Streamable HTTP. Trace, record, inspect offline, and safely replay MCP traffic."
     />
     <link rel="canonical" href="https://ryux1.github.io/mcp-trace/" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="MCP Trace" />
     <meta
       property="og:description"
-      content="Security-first observability, recording, and replay for MCP Streamable HTTP."
+      content="Security-first observability and recording for MCP stdio and Streamable HTTP."
     />
     <meta
       property="og:image"
@@ -26,7 +26,7 @@
         "@context": "https://schema.org",
         "@type": "SoftwareSourceCode",
         "name": "MCP Trace",
-        "description": "Security-first Model Context Protocol observability gateway for Streamable HTTP recording, inspection, tracing, and replay.",
+        "description": "Security-first Model Context Protocol observability proxy for stdio and Streamable HTTP recording, inspection, tracing, and replay.",
         "codeRepository": "https://github.com/ryux1/mcp-trace",
         "license": "https://opensource.org/license/mit",
         "programmingLanguage": "TypeScript",
@@ -237,9 +237,9 @@
         <div class="eyebrow">Open-source Model Context Protocol tooling</div>
         <h1>See the MCP traffic you actually operate.</h1>
         <p class="lead">
-          A transparent, security-first observability gateway for modern MCP Streamable HTTP. Trace,
-          measure, record, inspect offline, and safely replay JSON-RPC and SSE traffic without
-          modifying the client or server.
+          A transparent, security-first observability proxy for MCP stdio and modern Streamable
+          HTTP. Trace, measure, record, inspect offline, and safely replay traffic without modifying
+          the client or server.
         </p>
         <div class="actions">
           <a class="button" href="https://github.com/ryux1/mcp-trace#start-in-30-seconds"
@@ -258,7 +258,7 @@
           <article class="card">
             <h3>Transparent</h3>
             <p>
-              Streams JSON and SSE through a fixed upstream endpoint with backpressure and
+              Forwards stdio JSON-RPC bytes or streams HTTP JSON and SSE with backpressure and
               cancellation propagation.
             </p>
           </article>
@@ -280,13 +280,15 @@
       </section>
 
       <section>
-        <h2>A deliberately narrow gateway.</h2>
+        <h2>A deliberately narrow proxy.</h2>
         <pre class="flow">
 MCP client ── POST / GET / DELETE ──▶ MCP Trace ── transparent HTTP ──▶ MCP server
                                              │
                                              ├── Prometheus metrics
                                              ├── OpenTelemetry spans
-                                             └── sanitized NDJSON recording</pre>
+                                             └── sanitized NDJSON recording
+
+MCP client ── newline JSON-RPC ─────▶ MCP Trace ── exact stdio bytes ──▶ child process</pre>
         <p>
           MCP Trace does not implement MCP methods, authenticate clients, discover servers, or
           mutate JSON-RPC bodies. The upstream server remains the protocol authority.
@@ -308,6 +310,9 @@ cd mcp-trace
 corepack enable
 pnpm install --frozen-lockfile
 pnpm demo</code></pre>
+        <p>To trace a local stdio server after building the source:</p>
+        <pre><code>pnpm build
+node dist/cli.js stdio --record ./traffic.ndjson -- node ./server.mjs</code></pre>
         <p>
           Point the client at <code>http://127.0.0.1:7331/mcp</code>. The gateway listens on
           loopback by default.

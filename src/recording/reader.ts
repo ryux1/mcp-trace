@@ -1,11 +1,12 @@
 import { createReadStream } from "node:fs";
 import { createInterface } from "node:readline";
-import type { RecordedExchange } from "../types.js";
+import type { RecordedExchange, RecordedStdioMessage, RecordingEntry } from "../types.js";
 
 export type ParsedRecordingLine =
   | { readonly kind: "empty" }
   | { readonly exchange: RecordedExchange; readonly kind: "exchange" }
   | { readonly kind: "invalid-json" }
+  | { readonly kind: "message"; readonly message: RecordedStdioMessage }
   | { readonly kind: "unsupported" };
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -38,6 +39,26 @@ function isRecordedExchange(value: unknown): value is RecordedExchange {
   );
 }
 
+function isRecordedStdioMessage(value: unknown): value is RecordedStdioMessage {
+  if (!isObject(value) || !isObject(value.metadata)) {
+    return false;
+  }
+  return (
+    value.schemaVersion === 2 &&
+    value.transport === "stdio" &&
+    typeof value.id === "string" &&
+    typeof value.observedAt === "string" &&
+    typeof value.bytes === "number" &&
+    Number.isFinite(value.bytes) &&
+    (value.direction === "client-to-server" || value.direction === "server-to-client") &&
+    typeof value.metadata.method === "string" &&
+    (value.metadata.kind === "request" ||
+      value.metadata.kind === "response" ||
+      value.metadata.kind === "notification" ||
+      value.metadata.kind === "unknown")
+  );
+}
+
 export function parseRecordingLine(line: string): ParsedRecordingLine {
   if (line.trim() === "") {
     return { kind: "empty" };
@@ -48,12 +69,16 @@ export function parseRecordingLine(line: string): ParsedRecordingLine {
   } catch {
     return { kind: "invalid-json" };
   }
-  return isRecordedExchange(parsed)
-    ? { exchange: parsed, kind: "exchange" }
-    : { kind: "unsupported" };
+  if (isRecordedExchange(parsed)) {
+    return { exchange: parsed, kind: "exchange" };
+  }
+  if (isRecordedStdioMessage(parsed)) {
+    return { kind: "message", message: parsed };
+  }
+  return { kind: "unsupported" };
 }
 
-export async function* readRecording(path: string): AsyncGenerator<RecordedExchange> {
+export async function* readRecording(path: string): AsyncGenerator<RecordingEntry> {
   const lines = createInterface({
     crlfDelay: Number.POSITIVE_INFINITY,
     input: createReadStream(path, { encoding: "utf8" })
@@ -67,6 +92,9 @@ export async function* readRecording(path: string): AsyncGenerator<RecordedExcha
         break;
       case "exchange":
         yield parsed.exchange;
+        break;
+      case "message":
+        yield parsed.message;
         break;
       case "invalid-json":
         throw new Error(`Invalid JSON on recording line ${lineNumber}`);

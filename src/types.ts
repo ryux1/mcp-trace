@@ -13,6 +13,7 @@ export interface McpMetadata {
   readonly bodyMethod?: string;
   readonly headerMethod?: string;
   readonly id?: JsonPrimitive;
+  readonly isError?: boolean;
   readonly method: string;
   readonly mismatches: readonly string[];
   readonly name?: string;
@@ -51,6 +52,26 @@ export interface RecordedExchange {
   readonly traceId?: string;
   readonly upstream: string;
 }
+
+export type StdioDirection = "client-to-server" | "server-to-client";
+
+export type JsonRpcMessageKind = "notification" | "request" | "response" | "unknown";
+
+export interface RecordedStdioMessage {
+  readonly body?: CapturedBody;
+  readonly bytes: number;
+  readonly direction: StdioDirection;
+  readonly durationMs?: number;
+  readonly id: string;
+  readonly metadata: McpMetadata & {
+    readonly kind: JsonRpcMessageKind;
+  };
+  readonly observedAt: string;
+  readonly schemaVersion: 2;
+  readonly transport: "stdio";
+}
+
+export type RecordingEntry = RecordedExchange | RecordedStdioMessage;
 
 export type LogLevel = "debug" | "error" | "info" | "silent" | "warn";
 

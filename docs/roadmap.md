@@ -6,6 +6,14 @@ and an auditable trust boundary.
 
 ## Delivered
 
+### stdio proxying
+
+The `stdio` command launches one fixed upstream executable without a shell and forwards
+newline-delimited JSON-RPC bytes in both directions with backpressure and bounded framing. It keeps
+child stderr outside protocol stdout, propagates EOF and shutdown, exposes an optional minimal
+environment, and writes transport-neutral v2 message recordings. Cross-platform package CI runs the
+same process integration tests on Linux, macOS, and Windows.
+
 ### Lower-overhead native upstream transport
 
 The default HTTP and HTTPS upstream hop uses Node's native client instead of converting every
@@ -24,20 +32,6 @@ separate from the QEMU/Buildx multi-architecture release build.
 `mcp-trace report` produces a deterministic, self-contained HTML summary without starting a
 listener. It escapes recording-derived values, exposes capture/redaction and malformed-line state,
 omits captured bodies, and protects existing output unless overwrite is explicit.
-
-## Under evaluation
-
-### stdio proxying
-
-stdio would make the tool useful for more local MCP development, but it adds process lifecycle,
-environment inheritance, standard-error handling, executable selection, and credential-boundary
-questions. It will be accepted only with:
-
-- an explicit child-process and environment threat model;
-- no accidental credential recording;
-- byte-transparent JSON-RPC framing and cancellation behavior;
-- cross-platform lifecycle tests;
-- an interface that does not weaken the fixed-upstream HTTP mode.
 
 ## Explicit non-goals
 

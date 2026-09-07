@@ -1,5 +1,25 @@
 # Troubleshooting
 
+## The stdio server does not start
+
+Everything after `mcp-trace stdio --` is an executable plus its literal arguments, not a shell
+command. Use an absolute executable path when the MCP client's `PATH` differs from an interactive
+terminal. Shell syntax such as pipes, redirects, variable expansion, and quoted command strings is
+not interpreted.
+
+If `--clear-env` is enabled, repeat `--pass-env NAME` for every variable the child requires. The
+minimal environment intentionally omits `HOME` and application credentials. MCP Trace logs only the
+executable basename, never its arguments or environment values.
+
+## The stdio connection closes on a message
+
+MCP stdio requires one UTF-8 JSON-RPC message per newline and forbids embedded newlines. MCP Trace
+also bounds each line to 4 MiB by default. Increase `--max-message` only when the server
+legitimately needs a larger frame. An unterminated final message is rejected rather than guessed.
+
+The child must reserve stdout for protocol messages. Send diagnostic output to stderr; MCP Trace
+forwards stderr separately and does not treat its presence as a failed request.
+
 ## The gateway returns `403 Host header is not allowed`
 
 The default loopback listener accepts the matching local Host header. When binding to `0.0.0.0` or

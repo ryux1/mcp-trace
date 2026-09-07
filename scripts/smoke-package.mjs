@@ -108,6 +108,57 @@ async function stop(child) {
   });
 }
 
+async function runStdioSmoke(installedCli, directory) {
+  const server = join(directory, "stdio-echo-server.mjs");
+  const recording = join(directory, "stdio-traffic.ndjson");
+  await writeFile(server, "process.stdin.pipe(process.stdout);\n");
+  const child = spawn(
+    process.execPath,
+    [
+      installedCli,
+      "stdio",
+      "--record",
+      recording,
+      "--log-level",
+      "silent",
+      "--",
+      process.execPath,
+      server
+    ],
+    { stdio: ["pipe", "pipe", "pipe"] }
+  );
+  const stdout = [];
+  const stderr = [];
+  child.stdout.on("data", (chunk) => stdout.push(Buffer.from(chunk)));
+  child.stderr.on("data", (chunk) => stderr.push(Buffer.from(chunk)));
+  const message = Buffer.from(' {"jsonrpc":"2.0", "id":1, "method":"tools/list", "params":{}}\r\n');
+  child.stdin.end(message);
+  const result = await new Promise((resolveExit, rejectExit) => {
+    child.once("error", rejectExit);
+    child.once("exit", (code, signal) => resolveExit({ code, signal }));
+  });
+  if (result.code !== 0 || result.signal !== null) {
+    throw new Error(
+      `Installed stdio proxy failed (${result.code ?? result.signal}): ${Buffer.concat(stderr)}`
+    );
+  }
+  if (!Buffer.concat(stdout).equals(message)) {
+    throw new Error("Installed stdio proxy did not preserve protocol bytes");
+  }
+  const entries = (await readFile(recording, "utf8"))
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line));
+  if (
+    entries.length !== 2 ||
+    entries[0]?.schemaVersion !== 2 ||
+    entries[0]?.direction !== "client-to-server" ||
+    entries[1]?.direction !== "server-to-client"
+  ) {
+    throw new Error("Installed stdio proxy did not record both protocol directions");
+  }
+}
+
 const repository = resolve(import.meta.dirname, "..");
 const directory = await mkdtemp(join(tmpdir(), "mcp-trace-package-"));
 let upstream;
@@ -152,6 +203,7 @@ try {
     upstream.listen(upstreamPort, "127.0.0.1", resolveListen);
   });
   const installedCli = join(directory, "node_modules", "@ryux1", "mcp-trace", "dist", "cli.js");
+  await runStdioSmoke(installedCli, directory);
   gateway = spawn(
     process.execPath,
     [
@@ -193,7 +245,9 @@ try {
   ) {
     throw new Error("Installed package did not generate the expected offline report");
   }
-  process.stdout.write("Packaged CLI installation, proxy, and report smoke test passed.\n");
+  process.stdout.write(
+    "Packaged CLI installation, stdio/HTTP proxy, and report smoke test passed.\n"
+  );
 } finally {
   if (gateway !== undefined) {
     await stop(gateway);

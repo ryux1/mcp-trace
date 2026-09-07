@@ -102,7 +102,9 @@ async function rawGet(url: URL, host: string): Promise<{ body: string; status: n
 async function readEntries(path: string): Promise<RecordedExchange[]> {
   const entries: RecordedExchange[] = [];
   for await (const entry of readRecording(path)) {
-    entries.push(entry);
+    if (entry.schemaVersion === 1) {
+      entries.push(entry);
+    }
   }
   return entries;
 }

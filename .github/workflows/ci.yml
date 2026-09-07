@@ -86,6 +86,9 @@ jobs:
       - name: Build package
         run: pnpm build
 
+      - name: Verify stdio lifecycle and SDK interoperability
+        run: pnpm exec vitest run test/stdio.test.ts test/official-sdk.integration.test.ts
+
       - name: Verify clean consumer installation
         run: pnpm smoke:package
 
