@@ -34,7 +34,7 @@
   },
   "packageManager": "pnpm@10.34.0",
   "bin": {
-    "mcp-trace": "./dist/cli.js"
+    "mcp-trace": "dist/cli.js"
   },
   "exports": {
     ".": {
