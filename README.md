@@ -16,10 +16,16 @@ safely replay JSON-RPC and SSE traffic.
 
 ## Start in 30 seconds
 
-Requirements: Node.js 20.19 or newer.
+The public `v0.1.1` container is the shortest released path on `linux/amd64`:
 
-The initial npm and container publication is still pending. To run the current verified source,
-clone the repository and use the deterministic demo:
+```bash
+docker run --rm --network host \
+  ghcr.io/ryux1/mcp-trace:v0.1.1 proxy \
+  --upstream http://127.0.0.1:3001/mcp
+```
+
+The npm package is not published yet. To run the newer `0.2.0` code on `main`, use Node.js 20.19 or
+newer and the deterministic source demo:
 
 ```bash
 corepack enable
@@ -97,18 +103,21 @@ Point the MCP client at `http://127.0.0.1:7331/mcp`. MCP Trace binds only to `12
 
 ### Container
 
-Once the first versioned release is published, it will provide `linux/amd64` and `linux/arm64`
-images with an SBOM and build provenance. The following commands are release targets, not currently
-available artifacts:
+The public `v0.1.1` image is available for `linux/amd64`. Pin the version so deployment behavior
+does not change when a new release updates `latest`:
 
 ```bash
-docker pull ghcr.io/ryux1/mcp-trace:latest
+docker pull ghcr.io/ryux1/mcp-trace:v0.1.1
 
 docker run --rm --network host \
-  ghcr.io/ryux1/mcp-trace:latest proxy \
+  ghcr.io/ryux1/mcp-trace:v0.1.1 proxy \
   --host 127.0.0.1 \
   --upstream http://127.0.0.1:3001/mcp
 ```
+
+The image is also tagged `latest`. The next release workflow targets both `linux/amd64` and
+`linux/arm64` with an SBOM and build provenance; native arm64 runtime coverage remains on the
+[roadmap](docs/roadmap.md).
 
 For a complete local Jaeger demonstration:
 
