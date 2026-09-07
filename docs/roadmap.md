@@ -4,11 +4,14 @@ MCP Trace is intentionally a small observability gateway, not an MCP registry or
 plane. Roadmap items must preserve transparent streaming, a fixed upstream, safe recording defaults,
 and an auditable trust boundary.
 
-## Near term
-
-- Improve default-path overhead identified by the checked-in benchmark baseline.
-
 ## Delivered
+
+### Lower-overhead native upstream transport
+
+The default HTTP and HTTPS upstream hop uses Node's native client instead of converting every
+response through Fetch and Web Streams. Manual redirects, streaming backpressure, disconnect
+cancellation, header filtering, and the injectable Fetch path remain covered. Complete same-host
+before/after benchmark samples are published with the benchmark documentation.
 
 ### Native multi-architecture container verification
 
