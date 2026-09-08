@@ -8,9 +8,11 @@ import {
   parseHeaderEnvironment,
   parseLogLevel,
   parsePort,
+  parsePositiveByteSize,
   parsePositiveInteger,
   validateEndpointPath,
   validateOrigin,
+  validateRecordingOptions,
   validateUpstream
 } from "./config.js";
 import { McpTraceGateway } from "./proxy/gateway.js";
@@ -32,6 +34,7 @@ interface ProxyCliOptions {
   host: string;
   logLevel: LogLevel;
   maxRecordBody: number;
+  maxRecordingSize?: number;
   maxRequestBody: number;
   otlpEndpoint?: string;
   otlpHeaderEnv: string[];
@@ -64,6 +67,7 @@ interface StdioCliOptions {
   logLevel: LogLevel;
   maxMessage: number;
   maxRecordBody: number;
+  maxRecordingSize?: number;
   passEnv: string[];
   record?: string;
   recordBodies: boolean;
@@ -93,6 +97,9 @@ function proxyCommand(): Command {
     )
     .option("--allow-host <host>", "allow a Host header; repeatable", collect, [] as string[])
     .option("--record <path>", "append sanitized NDJSON exchanges to this file")
+    .option("--max-recording-size <size>", "stop recording at this total file size", (value) =>
+      parsePositiveByteSize(value, "Recording byte ceiling")
+    )
     .option("--record-bodies", "capture sanitized request and response bodies", false)
     .option(
       "--max-request-body <size>",
@@ -130,12 +137,19 @@ function proxyCommand(): Command {
       if (options.recordBodies && options.record === undefined) {
         throw new Error("--record-bodies requires --record");
       }
+      validateRecordingOptions(options.record, options.maxRecordingSize);
       const logger = createLogger(options.logLevel);
       const upstream = validateUpstream(options.upstream);
       const endpointPath = validateEndpointPath(options.endpoint);
       const allowedOrigins = options.allowOrigin.map(validateOrigin);
       const recorder =
-        options.record === undefined ? undefined : await NdjsonRecorder.create(options.record);
+        options.record === undefined
+          ? undefined
+          : await NdjsonRecorder.create(options.record, {
+              ...(options.maxRecordingSize === undefined
+                ? {}
+                : { maxBytes: options.maxRecordingSize })
+            });
       const otlpEndpoint =
         options.otlpEndpoint ??
         process.env.OTEL_EXPORTER_OTLP_TRACES_ENDPOINT ??
@@ -269,6 +283,9 @@ function stdioCommand(): Command {
     .argument("<executable>", "upstream server executable")
     .argument("[arguments...]", "arguments passed directly to the executable")
     .option("--record <path>", "append sanitized NDJSON messages to this file")
+    .option("--max-recording-size <size>", "stop recording at this total file size", (value) =>
+      parsePositiveByteSize(value, "Recording byte ceiling")
+    )
     .option("--record-bodies", "capture sanitized JSON-RPC message bodies", false)
     .option(
       "--max-message <size>",
@@ -306,6 +323,7 @@ function stdioCommand(): Command {
       if (options.recordBodies && options.record === undefined) {
         throw new Error("--record-bodies requires --record");
       }
+      validateRecordingOptions(options.record, options.maxRecordingSize);
       if (options.maxMessage <= 0) {
         throw new Error("stdio message limit must be positive");
       }
@@ -315,7 +333,13 @@ function stdioCommand(): Command {
       );
       const logger = createLogger(options.logLevel);
       const recorder =
-        options.record === undefined ? undefined : await NdjsonRecorder.create(options.record);
+        options.record === undefined
+          ? undefined
+          : await NdjsonRecorder.create(options.record, {
+              ...(options.maxRecordingSize === undefined
+                ? {}
+                : { maxBytes: options.maxRecordingSize })
+            });
       const controller = new AbortController();
       const abort = (): void => controller.abort();
       process.once("SIGINT", abort);

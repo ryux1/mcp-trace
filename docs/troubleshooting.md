@@ -106,3 +106,11 @@ removed value.
 That is expected. Redaction is defense in depth, not a guarantee that arbitrary payloads are free of
 sensitive data. Keep recordings owner-readable, inspect them manually, and create a purpose-built
 synthetic reproduction before filing a public issue.
+
+## Recording stopped at its byte ceiling
+
+When `--max-recording-size` is set, MCP Trace emits one warning and stops adding entries before a
+complete NDJSON line would exceed the configured total size. Existing bytes in an append target
+count toward the ceiling. HTTP and stdio traffic continues normally. Start a new recording path or
+raise the ceiling on the next process invocation; the active recorder does not resume after the
+limit has been reached.

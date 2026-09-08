@@ -167,6 +167,38 @@ describe("stdio process proxy", () => {
     });
   });
 
+  it("keeps forwarding after the recording ceiling and warns once", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "mcp-trace-stdio-retention-"));
+    temporaryDirectories.push(directory);
+    const recording = join(directory, "traffic.ndjson");
+    const recorder = await NdjsonRecorder.create(recording, { maxBytes: 1 });
+    const message = Buffer.from('{"jsonrpc":"2.0","id":1,"method":"ping"}\n');
+    const output = new PassThrough();
+    const outputData = collect(output);
+    const warnings: string[] = [];
+
+    const result = await runStdioProxy({
+      arguments: ["test/fixtures/stdio/echo-server.mjs"],
+      executable: process.execPath,
+      input: Readable.from([message]),
+      logger: {
+        debug: () => undefined,
+        error: () => undefined,
+        info: () => undefined,
+        warn: (text) => warnings.push(text)
+      },
+      output,
+      recorder,
+      stderr: new PassThrough()
+    });
+
+    expect(result).toEqual({ code: 0, signal: null });
+    expect(outputData.value()).toEqual(message);
+    expect(warnings).toEqual(["Recording byte ceiling reached; further entries will be skipped"]);
+    expect(await readFile(recording, "utf8")).toBe("");
+    expect(recorder.state.skippedEntries).toBe(2);
+  });
+
   it("builds a minimal child environment only when requested", () => {
     const environment = {
       HOME: "/secret-home",

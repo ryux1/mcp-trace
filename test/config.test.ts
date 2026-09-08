@@ -5,9 +5,11 @@ import {
   parseHeaderEnvironment,
   parseLogLevel,
   parsePort,
+  parsePositiveByteSize,
   parsePositiveInteger,
   validateEndpointPath,
   validateOrigin,
+  validateRecordingOptions,
   validateUpstream
 } from "../src/config.js";
 
@@ -19,6 +21,7 @@ describe("configuration parsing", () => {
     expect(parsePort("0")).toBe(0);
     expect(parsePort("65535")).toBe(65_535);
     expect(parsePositiveInteger("3", "Workers")).toBe(3);
+    expect(parsePositiveByteSize("2MiB", "Recording byte ceiling")).toBe(2 * 1_024 * 1_024);
     expect(parseLogLevel("warn")).toBe("warn");
   });
 
@@ -29,7 +32,18 @@ describe("configuration parsing", () => {
   it("rejects invalid numeric and log values", () => {
     expect(() => parsePort("65536")).toThrow("Invalid port");
     expect(() => parsePositiveInteger("0", "Workers")).toThrow("positive integer");
+    expect(() => parsePositiveByteSize("0", "Recording byte ceiling")).toThrow(
+      "positive byte size"
+    );
     expect(() => parseLogLevel("verbose")).toThrow("Invalid log level");
+  });
+
+  it("rejects a recording ceiling without a recording path", () => {
+    expect(() => validateRecordingOptions(undefined, 1_024)).toThrow(
+      "--max-recording-size requires --record"
+    );
+    expect(validateRecordingOptions("traffic.ndjson", 1_024)).toBeUndefined();
+    expect(validateRecordingOptions(undefined, undefined)).toBeUndefined();
   });
 
   it.each(["12junk", "1.5", "1e3", "+12", "-1", " 12", "12 ", "9007199254740992"])(

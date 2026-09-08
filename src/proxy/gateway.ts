@@ -155,6 +155,13 @@ export class McpTraceGateway {
     this.#port = options.port ?? 7_331;
     this.#recordBodies = options.recordBodies ?? false;
     this.#recorder = options.recorder;
+    if (this.#recorder?.state.limitReached === true) {
+      this.#metrics.recordingLimitReached();
+      this.#logger.warn("Recording byte ceiling reached; further entries will be skipped", {
+        ...this.#recorder.state,
+        recording: this.#recorder.path
+      });
+    }
     this.#redactor = options.redactor ?? new Redactor();
     this.#telemetry = options.telemetry;
     this.#tracer = options.telemetry.tracer;
@@ -483,6 +490,13 @@ export class McpTraceGateway {
       ...(traceId === undefined ? {} : { traceId }),
       upstream: publicUpstream(this.#upstream)
     };
-    await this.#recorder.write(exchange);
+    const result = await this.#recorder.write(exchange);
+    if (result === "limit-reached") {
+      this.#metrics.recordingLimitReached();
+      this.#logger.warn("Recording byte ceiling reached; further entries will be skipped", {
+        ...this.#recorder.state,
+        recording: this.#recorder.path
+      });
+    }
   }
 }

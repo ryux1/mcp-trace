@@ -116,9 +116,19 @@ function writeStdioMessage(
     schemaVersion: 2,
     transport: "stdio"
   };
-  return options.recorder.write(entry).catch((error: unknown) => {
-    options.logger.error("Failed to write stdio recording", { error });
-  });
+  return options.recorder
+    .write(entry)
+    .then((result) => {
+      if (result === "limit-reached") {
+        options.logger.warn("Recording byte ceiling reached; further entries will be skipped", {
+          ...options.recorder?.state,
+          recording: options.recorder?.path
+        });
+      }
+    })
+    .catch((error: unknown) => {
+      options.logger.error("Failed to write stdio recording", { error });
+    });
 }
 
 function exitPromise(child: ChildProcessWithoutNullStreams): Promise<StdioProxyResult> {
@@ -139,6 +149,12 @@ export async function runStdioProxy(options: StdioProxyOptions): Promise<StdioPr
   }
   const logger = options.logger ?? silentLogger;
   const recorder = options.recorder;
+  if (recorder?.state.limitReached === true) {
+    logger.warn("Recording byte ceiling reached; further entries will be skipped", {
+      ...recorder.state,
+      recording: recorder.path
+    });
+  }
   const child = (options.spawnImplementation ?? spawn)(
     options.executable,
     [...(options.arguments ?? [])],

@@ -1,4 +1,4 @@
-import { mkdtemp, open, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, open, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -109,6 +109,81 @@ describe("NDJSON recordings", () => {
       methods: {},
       schemaVersion: 1
     });
+  });
+
+  it("counts an existing file and never writes a partial line at the ceiling", async () => {
+    const directory = await temporaryDirectory();
+    const path = join(directory, "traffic.ndjson");
+    const existing = `${JSON.stringify(exchange("1", "tools/list", 10, 200))}\n`;
+    const next = exchange("2", "resources/read", 20, 200);
+    await writeFile(path, existing, { mode: 0o644 });
+    const recorder = await NdjsonRecorder.create(path, {
+      maxBytes: Buffer.byteLength(existing) + Buffer.byteLength(`${JSON.stringify(next)}\n`) - 1
+    });
+
+    expect(await recorder.write(next)).toBe("limit-reached");
+    expect(await recorder.write(exchange("3", "ping", 1, 200))).toBe("skipped");
+    await recorder.close();
+
+    expect(await readFile(path, "utf8")).toBe(existing);
+    expect((await stat(path)).mode & 0o777).toBe(0o600);
+    expect(recorder.state).toEqual({
+      bytesWritten: Buffer.byteLength(existing),
+      limitReached: true,
+      maxBytes: Buffer.byteLength(existing) + Buffer.byteLength(`${JSON.stringify(next)}\n`) - 1,
+      skippedEntries: 2
+    });
+  });
+
+  it("serializes concurrent admission and permits an exact fit", async () => {
+    const directory = await temporaryDirectory();
+    const path = join(directory, "traffic.ndjson");
+    const entry = exchange("1", "tools/list", 10, 200);
+    const lineBytes = Buffer.byteLength(`${JSON.stringify(entry)}\n`);
+    const recorder = await NdjsonRecorder.create(path, { maxBytes: lineBytes * 2 });
+
+    const results = await Promise.all(Array.from({ length: 10 }, () => recorder.write(entry)));
+    await recorder.close();
+
+    expect(results.filter((result) => result === "written")).toHaveLength(2);
+    expect(results.filter((result) => result === "limit-reached")).toHaveLength(1);
+    expect(results.filter((result) => result === "skipped")).toHaveLength(7);
+    expect((await readFile(path, "utf8")).trim().split("\n")).toHaveLength(2);
+    expect((await stat(path)).size).toBe(lineBytes * 2);
+    expect(recorder.state).toEqual({
+      bytesWritten: lineBytes * 2,
+      limitReached: true,
+      maxBytes: lineBytes * 2,
+      skippedEntries: 8
+    });
+  });
+
+  it("starts stopped when an existing file is already at the ceiling", async () => {
+    const directory = await temporaryDirectory();
+    const path = join(directory, "traffic.ndjson");
+    await writeFile(path, "{}\n", { mode: 0o600 });
+    const recorder = await NdjsonRecorder.create(path, { maxBytes: 3 });
+
+    expect(recorder.state.limitReached).toBe(true);
+    expect(await recorder.write(exchange("1", "ping", 1, 200))).toBe("skipped");
+    await recorder.close();
+    expect(await readFile(path, "utf8")).toBe("{}\n");
+  });
+
+  it("drains admitted writes on close and validates API limits", async () => {
+    const directory = await temporaryDirectory();
+    const path = join(directory, "traffic.ndjson");
+    await expect(NdjsonRecorder.create(path, { maxBytes: 0 })).rejects.toThrow(
+      "positive safe integer"
+    );
+    const recorder = await NdjsonRecorder.create(path);
+    const writes = [
+      recorder.write(exchange("1", "ping", 1, 200)),
+      recorder.write(exchange("2", "ping", 1, 200))
+    ];
+    await recorder.close();
+    expect(await Promise.all(writes)).toEqual(["written", "written"]);
+    expect((await readFile(path, "utf8")).trim().split("\n")).toHaveLength(2);
   });
 
   it("reports malformed and unsupported recording lines", async () => {

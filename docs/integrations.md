@@ -35,8 +35,9 @@ scrape_configs:
 ```
 
 Available signals include in-flight requests, request counts by bounded MCP method/status, request
-latency histograms, and recording failures. Tool and resource names are deliberately excluded from
-metric labels to prevent unbounded cardinality.
+latency histograms, recording failures, and the label-free `mcp_trace_recording_limit_reached`
+gauge. Tool and resource names are deliberately excluded from metric labels to prevent unbounded
+cardinality.
 
 ## Grafana Tempo or another OTLP backend
 

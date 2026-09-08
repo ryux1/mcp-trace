@@ -25,6 +25,7 @@ export class MetricsRegistry {
   readonly #methods = new Map<string, MethodMetrics>();
   #inFlight = 0;
   #recordingErrors = 0;
+  #recordingLimitReached = false;
 
   constructor(bucketsMs: readonly number[] = DEFAULT_BUCKETS_MS, maxMethods = 100) {
     this.#bucketsMs = [...bucketsMs].sort((left, right) => left - right);
@@ -60,6 +61,10 @@ export class MetricsRegistry {
     this.#recordingErrors += 1;
   }
 
+  recordingLimitReached(): void {
+    this.#recordingLimitReached = true;
+  }
+
   renderPrometheus(): string {
     const lines = [
       "# HELP mcp_trace_in_flight_requests Current requests being proxied.",
@@ -68,6 +73,9 @@ export class MetricsRegistry {
       "# HELP mcp_trace_recording_errors_total Recording writes that failed.",
       "# TYPE mcp_trace_recording_errors_total counter",
       `mcp_trace_recording_errors_total ${this.#recordingErrors}`,
+      "# HELP mcp_trace_recording_limit_reached Whether recording stopped at its byte ceiling.",
+      "# TYPE mcp_trace_recording_limit_reached gauge",
+      `mcp_trace_recording_limit_reached ${this.#recordingLimitReached ? 1 : 0}`,
       "# HELP mcp_trace_requests_total Proxied MCP requests by method and HTTP status.",
       "# TYPE mcp_trace_requests_total counter"
     ];

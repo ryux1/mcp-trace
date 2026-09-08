@@ -15,7 +15,12 @@ export {
   type RecordingReportData,
   type RecordingReportOptions
 } from "./recording/report.js";
-export { NdjsonRecorder } from "./recording/recorder.js";
+export {
+  NdjsonRecorder,
+  type NdjsonRecorderOptions,
+  type RecordingState,
+  type RecordingWriteResult
+} from "./recording/recorder.js";
 export { REDACTED, Redactor } from "./recording/redaction.js";
 export { replayRecording, type ReplayOptions, type ReplaySummary } from "./replay/replay.js";
 export {
