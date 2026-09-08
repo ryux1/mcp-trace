@@ -61,6 +61,8 @@ after `--shutdown-grace`, a child that has not exited is force-terminated.
 - No recording occurs unless `--record` is supplied.
 - Recordings contain metadata, safe headers, timings, and byte counts by default.
 - Bodies require the additional `--record-bodies` flag.
+- `--max-recording-size <size>` optionally stops both HTTP and stdio recording at a total byte
+  ceiling. Existing file bytes count toward the limit; omitting it preserves unlimited append mode.
 - Files and newly created parent directories use owner-only permissions (`0600` and `0700`).
 - `Authorization`, cookies, API-key headers, and session IDs are never stored verbatim.
 - `Mcp-Session-Id` is represented only by a truncated SHA-256 correlation hash.

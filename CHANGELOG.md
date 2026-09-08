@@ -7,6 +7,9 @@ All notable changes are documented here. This project follows
 
 ### Added
 
+- Optional `--max-recording-size` retention for HTTP and stdio recordings, with serialized
+  whole-line admission, existing-file accounting, one-shot diagnostics, and bounded metric/state
+  visibility while preserving unlimited recording by default.
 - Secure stdio process proxying with no-shell execution, byte-transparent bounded framing,
   bidirectional JSON-RPC correlation, child lifecycle handling, and transport-neutral v2 recordings.
 - Offline, deterministic HTML recording reports with body-free summaries, hostile-value escaping,

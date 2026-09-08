@@ -180,8 +180,14 @@ Metadata-only recording is the default:
 ```bash
 mcp-trace proxy \
   --upstream http://127.0.0.1:3001/mcp \
-  --record ./traffic.ndjson
+  --record ./traffic.ndjson \
+  --max-recording-size 100MiB
 ```
+
+`--max-recording-size` is optional and works with both `proxy` and `stdio`. When set, MCP Trace
+counts any bytes already in the append target and stops recording before the first complete NDJSON
+line that would exceed the ceiling. Proxying continues, and one warning reports the transition.
+Without the option, recording remains unlimited for backward compatibility.
 
 Payload capture requires a second, explicit switch:
 
@@ -244,8 +250,9 @@ The gateway exposes two local administrative endpoints:
 - `GET /__mcp_trace/healthz`
 - `GET /__mcp_trace/metrics`
 
-Prometheus metrics include request totals, in-flight requests, recording failures, and latency
-histograms. Method-label cardinality is bounded; tool/resource names are not used as metric labels.
+Prometheus metrics include request totals, in-flight requests, recording failures, recording-limit
+state, and latency histograms. Method-label cardinality is bounded; tool/resource names are not used
+as metric labels.
 
 Export spans to any OTLP/HTTP collector:
 

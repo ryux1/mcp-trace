@@ -46,6 +46,23 @@ export function parseByteSize(value: string): number {
   return amount * multiplier;
 }
 
+export function parsePositiveByteSize(value: string, label: string): number {
+  const parsed = parseByteSize(value);
+  if (parsed <= 0) {
+    throw new Error(`${label} must be a positive byte size`);
+  }
+  return parsed;
+}
+
+export function validateRecordingOptions(
+  record: string | undefined,
+  maxRecordingSize: number | undefined
+): void {
+  if (maxRecordingSize !== undefined && record === undefined) {
+    throw new Error("--max-recording-size requires --record");
+  }
+}
+
 export function parseLogLevel(value: string): LogLevel {
   if (
     value === "debug" ||

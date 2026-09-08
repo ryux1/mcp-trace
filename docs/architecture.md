@@ -96,6 +96,8 @@ transport-level concern.
   emitted status would be incorrect.
 - Recording failures increment a metric and are logged, but do not rewrite a completed upstream
   response.
+- Reaching a configured recording ceiling stops later recording writes, emits one warning, and does
+  not change HTTP responses or stdio forwarding.
 - Oversized or unterminated stdio messages fail the proxy without rewriting the observed bytes.
 - A stdio child exit is propagated as an exit code or signal result; stderr text is not interpreted
   as failure because MCP permits informational logging there.
@@ -104,8 +106,18 @@ transport-level concern.
 
 An HTTP exchange is written only after the proxied response completes or fails. A stdio message is
 written after its complete newline-delimited frame is observed; correlated responses include the
-request method and duration. Concurrent writes use a single append stream, producing one JSON object
-per line. Graceful shutdown drains active transport work before closing the recording stream.
+request method and duration. Concurrent writes use a serialized admission queue and a single append
+stream, producing one JSON object per line. With `--max-recording-size`, the recorder counts the
+file size at append-open time and admits a full UTF-8 line only when it fits; an exact fit is
+allowed. The first non-fitting entry atomically moves the recorder to a stopped state, so no
+application-level line prefix is written. Graceful shutdown rejects new writes, drains already
+admitted transport work, and then closes the recording stream.
+
+On restart, append recovery uses the current on-disk byte count. A process or operating-system crash
+during an already admitted stream write can still leave a torn final line, as with ordinary append
+I/O; the reader reports such malformed input rather than silently accepting it. A recording path is
+owned by one MCP Trace process at a time—concurrent external writers are outside this consistency
+model.
 
 Recordings are designed for diagnostics, not as a durable event store. For high-volume or
 multi-process deployments, consume OpenTelemetry and Prometheus signals and treat NDJSON capture as

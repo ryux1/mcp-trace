@@ -1,7 +1,7 @@
 import { trace } from "@opentelemetry/api";
 import { createServer, request as httpRequest, type Server } from "node:http";
 import { readFileSync } from "node:fs";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import {
   createServer as createHttpsServer,
   globalAgent as httpsGlobalAgent,
@@ -15,6 +15,7 @@ import { McpTraceGateway } from "../src/proxy/gateway.js";
 import { readRecording } from "../src/recording/reader.js";
 import { NdjsonRecorder } from "../src/recording/recorder.js";
 import { REDACTED } from "../src/recording/redaction.js";
+import { MetricsRegistry } from "../src/telemetry/metrics.js";
 import type { RecordedExchange } from "../src/types.js";
 import type { TelemetryRuntime } from "../src/telemetry/tracing.js";
 import { bufferFromUnknown } from "./helpers.js";
@@ -476,6 +477,43 @@ describe("MCP tracing gateway", () => {
     expect(entries).toHaveLength(2);
     expect(entries[0]?.request.metadata.sessionHash).toMatch(/^[a-f0-9]{16}$/);
     expect(JSON.stringify(entries)).not.toContain("legacy-session-secret");
+  });
+
+  it("keeps forwarding after the recording ceiling and reports one transition", async () => {
+    let upstreamHits = 0;
+    const upstream = await listen(
+      createServer((_request, response) => {
+        upstreamHits += 1;
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end('{"ok":true}');
+      })
+    );
+    const directory = await mkdtemp(join(tmpdir(), "mcp-trace-retention-"));
+    temporaryDirectories.push(directory);
+    const recordingPath = join(directory, "traffic.ndjson");
+    const recorder = await NdjsonRecorder.create(recordingPath, { maxBytes: 1 });
+    const warnings: string[] = [];
+    const metricsRegistry = new MetricsRegistry();
+    const { gateway, url } = await startGateway(upstream, {
+      logger: {
+        debug: () => undefined,
+        error: () => undefined,
+        info: () => undefined,
+        warn: (message) => warnings.push(message)
+      },
+      metrics: metricsRegistry,
+      recorder
+    });
+
+    expect((await fetch(url)).status).toBe(200);
+    expect((await fetch(url)).status).toBe(200);
+    expect(upstreamHits).toBe(2);
+    expect(warnings).toEqual(["Recording byte ceiling reached; further entries will be skipped"]);
+    expect(metricsRegistry.renderPrometheus()).toContain("mcp_trace_recording_limit_reached 1");
+
+    await gateway.close();
+    expect(await readFile(recordingPath, "utf8")).toBe("");
+    expect(recorder.state.skippedEntries).toBe(2);
   });
 
   it("returns a structured 502 when the upstream cannot be reached", async () => {
