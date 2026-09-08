@@ -20,6 +20,13 @@ updates:
       - dependency-name: commander
         update-types:
           - version-update:semver-major
+      # Vitest 5 requires Node.js 22.12, but the package supports Node.js 20.19.
+      - dependency-name: vitest
+        update-types:
+          - version-update:semver-major
+      - dependency-name: "@vitest/coverage-v8"
+        update-types:
+          - version-update:semver-major
       # Keep TypeScript within typescript-eslint's declared peer range.
       - dependency-name: typescript
         update-types:
